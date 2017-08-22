@@ -2,7 +2,10 @@ import distutils
 from distutils.core import setup, Extension, Command
 import numpy
 
-sources=["ngmix/_gmix.c"]
+sources=[
+    "ngmix/_gmix.c",
+    "ngmix/fmath_wrap.cc",
+]
 include_dirs=[numpy.get_include()]
 
 ext=Extension("ngmix._gmix", sources, include_dirs=include_dirs)

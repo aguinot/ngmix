@@ -485,6 +485,54 @@ class GMix(object):
             else:
                 _gmix.render(gm, image, nsub, fexp)
 
+    def make_image_vec(self, dims, jacobian):
+        """
+        Render the mixture into a new image
+
+        parameters
+        ----------
+        dims: 2-element sequence
+            dimensions [nrows, ncols]
+        nsub: integer, optional
+            Defines a grid for sub-pixel integration
+        fast_exp: bool, optional
+            use fast, approximate exp function
+        """
+
+        dims=numpy.array(dims, ndmin=1, dtype='i8')
+        if dims.size != 2:
+            raise ValueError("images must have two dimensions, "
+                             "got %s" % str(dims))
+
+        image=numpy.zeros(dims, dtype='f8')
+        scratch=numpy.zeros(dims, dtype='f8')
+        self._fill_image_vec(image, scratch, jacobian)
+        return image
+
+
+    def _fill_image_vec(self, image, scratch, jacobian):
+        """
+        Internal routine.  Render the mixture into a new image.  No error
+        checking on the image!
+
+        parameters
+        ----------
+        image: 2-d double array
+            image to render into
+        scratch: 2-d double array
+            temp image
+        """
+
+        gm=self._get_gmix_data()
+        assert isinstance(jacobian,Jacobian)
+        assert image.shape==scratch.shape
+
+        _gmix.render_vec(
+            gm,
+            image,
+            scratch,
+            jacobian._data,
+        )
 
     def fill_fdiff(self, obs, fdiff, start=0, nsub=1, npoints=None, nocheck=False):
         """
