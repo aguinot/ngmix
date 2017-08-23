@@ -8,6 +8,7 @@ sources=[
 ]
 include_dirs=[numpy.get_include()]
 
+#ext=Extension("ngmix._gmix", sources, include_dirs=include_dirs, extra_compile_args = ["-march=native"],)
 ext=Extension("ngmix._gmix", sources, include_dirs=include_dirs)
 
 setup(name="ngmix", 

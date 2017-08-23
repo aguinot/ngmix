@@ -506,11 +506,12 @@ class GMix(object):
 
         image=numpy.zeros(dims, dtype='f8')
         scratch=numpy.zeros(dims, dtype='f8')
-        self._fill_image_vec(image, scratch, jacobian)
+        dorender=numpy.zeros(dims, dtype='i4')
+        self._fill_image_vec(image, scratch, dorender, jacobian)
         return image
 
 
-    def _fill_image_vec(self, image, scratch, jacobian):
+    def _fill_image_vec(self, image, scratch, dorender, jacobian):
         """
         Internal routine.  Render the mixture into a new image.  No error
         checking on the image!
@@ -531,6 +532,7 @@ class GMix(object):
             gm,
             image,
             scratch,
+            dorender,
             jacobian._data,
         )
 

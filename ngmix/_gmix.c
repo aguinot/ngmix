@@ -1390,7 +1390,112 @@ static PyObject * PyGMix_render_jacob(PyObject* self, PyObject* args) {
     return Py_None;
 }
 
+/*
+   scratch object must contiguous, double and same size as image
+
+   index object must be i2 and same shape as image
+*/
 static PyObject * PyGMix_render_vec(PyObject* self, PyObject* args) {
+
+    PyObject* gmix_obj=NULL;
+    PyObject* image_obj=NULL;
+    PyObject* scratch_obj=NULL;
+    PyObject* dorender_obj=NULL;
+    PyObject* jacob_obj=NULL;
+    npy_intp 
+        n_gauss=0, i_gauss=0,
+        n_row=0, n_col=0,
+        row=0, col=0,
+        i_render=0, n_render=0;
+    npy_int32 *dorender_ptr=NULL;
+
+    struct PyGMix_Gauss2D *gmix=NULL, *gauss=NULL;
+    struct PyGMix_Jacobian *jacob=NULL;
+
+    double
+        *ptr=NULL, *scratch_ptr=NULL,
+        tu=0, tv=0, u=0, v=0, chi2=0;
+
+    if (!PyArg_ParseTuple(args, (char*)"OOOOO", 
+                          &gmix_obj,
+                          &image_obj,
+                          &scratch_obj,
+                          &dorender_obj,
+                          &jacob_obj)) {
+        return NULL;
+    }
+
+    gmix=(struct PyGMix_Gauss2D* ) PyArray_DATA(gmix_obj);
+    n_gauss=PyArray_SIZE(gmix_obj);
+
+    if (!gmix_set_norms_if_needed(gmix, n_gauss)) {
+        return NULL;
+    }
+
+    jacob=(struct PyGMix_Jacobian* ) PyArray_DATA(jacob_obj);
+
+    n_row=PyArray_DIM(image_obj, 0);
+    n_col=PyArray_DIM(image_obj, 1);
+
+    scratch_ptr = (double* ) PyArray_DATA(scratch_obj);
+    for (i_gauss=0; i_gauss<n_gauss; i_gauss++) {
+        gauss = &gmix[i_gauss];
+
+        n_render=0;
+        for (row=0; row < n_row; row++) {
+            for (col=0; col < n_col; col++) {
+
+                tu=PYGMIX_JACOB_GETU(jacob, row, col);
+                tv=PYGMIX_JACOB_GETV(jacob, row, col);
+
+                v = tv - gauss->row;
+                u = tu - gauss->col;
+
+                chi2 =       gauss->dcc*v*v
+                       +     gauss->drr*u*u
+                       - 2.0*gauss->drc*u*v;
+     
+                dorender_ptr = (npy_int32* ) PyArray_GETPTR2(dorender_obj,row,col);
+                if (chi2 < PYGMIX_MAX_CHI2 && chi2 >= 0.0) {
+                    scratch_ptr[n_render] = -0.5*chi2;
+
+                    n_render++;
+
+                    *dorender_ptr = 1;
+                } else {
+                    *dorender_ptr = 0;
+                }
+
+            } // cols
+        } // rows
+
+        if (n_render > 0) {
+            // exp in place on the scratch array
+            fmath_expd_v(scratch_ptr, n_render);
+
+            i_render=0;
+            for (row=0; row < n_row; row++) {
+                for (col=0; col < n_col; col++) {
+         
+                    dorender_ptr = (npy_int32* ) PyArray_GETPTR2(dorender_obj,row,col);
+
+                    if ( (*dorender_ptr) ) {
+                        double tmp = scratch_ptr[i_render];
+                        ptr = (double* ) PyArray_GETPTR2(image_obj,row,col);
+                        (*ptr) += gauss->pnorm*(tmp);
+                        i_render++;
+                    }
+                } // cols
+            } // rows
+        }
+    }
+
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+
+static PyObject * PyGMix_render_vec_old(PyObject* self, PyObject* args) {
 
     PyObject* gmix_obj=NULL;
     PyObject* image_obj=NULL;
@@ -1450,23 +1555,6 @@ static PyObject * PyGMix_render_vec(PyObject* self, PyObject* args) {
         ptr1 = (double* ) PyArray_DATA(scratch_obj);
         fmath_expd_v(ptr1, n_tot);
 
-        /*
-        ptr1 = (double* ) PyArray_DATA(scratch_obj);
-        for (i=0; i< n_tot; i++) {
-            (*ptr1) *= gauss->pnorm;
-            ptr1++;
-        }
- 
-        ptr1 = (double* ) PyArray_DATA(scratch_obj);
-        ptr2 = (double* ) PyArray_DATA(image_obj);
-        for (i=0; i< n_tot; i++) {
-            (*ptr2) += (*ptr1);
-
-            ptr1++;
-            ptr2++;
-        }
-        */
-
         for (row=0; row < n_row; row++) {
             for (col=0; col < n_col; col++) {
      
@@ -1483,6 +1571,8 @@ static PyObject * PyGMix_render_vec(PyObject* self, PyObject* args) {
     Py_INCREF(Py_None);
     return Py_None;
 }
+
+
 
 /*
 
