@@ -1404,7 +1404,7 @@ static PyObject * PyGMix_render_vec(PyObject* self, PyObject* args) {
     struct PyGMix_Gauss2D *gmix=NULL, *gauss=NULL;
     struct PyGMix_Jacobian *jacob=NULL;
 
-    double *ptr1=NULL, *ptr2=0, u=0, v=0, chi2=0, i=0;
+    double *ptr1=NULL, *ptr2=0, u=0, v=0, chi2=0;
 
     if (!PyArg_ParseTuple(args, (char*)"OOOO", 
                           &gmix_obj,
@@ -1479,6 +1479,100 @@ static PyObject * PyGMix_render_vec(PyObject* self, PyObject* args) {
         } // rows
 
     }
+
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+/*
+
+   vectorization is across the gmix, so we can not render some if needed
+
+*/
+
+static PyObject * PyGMix_render_vec_by_gauss(PyObject* self, PyObject* args) {
+
+    PyObject* gmix_obj=NULL;
+    PyObject* image_obj=NULL;
+    PyObject* jacob_obj=NULL;
+    npy_intp 
+        n_gauss=0, i_gauss=0,
+        n_row=0, n_col=0,
+        row=0, col=0;
+
+    static double scratch[50];
+    static int render[50];
+    int irender=0;
+    int nrender=0;
+
+    struct PyGMix_Gauss2D *gmix=NULL, *gauss=NULL;
+    struct PyGMix_Jacobian *jacob=NULL;
+
+    double
+        *ptr=NULL,
+        tu=0, tv=0, u=0, v=0,
+        chi2=0, tmp=0;
+
+    if (!PyArg_ParseTuple(args, (char*)"OOO", 
+                          &gmix_obj,
+                          &image_obj,
+                          &jacob_obj)) {
+        return NULL;
+    }
+
+    gmix=(struct PyGMix_Gauss2D* ) PyArray_DATA(gmix_obj);
+    n_gauss=PyArray_SIZE(gmix_obj);
+
+    if (!gmix_set_norms_if_needed(gmix, n_gauss)) {
+        return NULL;
+    }
+
+    jacob=(struct PyGMix_Jacobian* ) PyArray_DATA(jacob_obj);
+
+    n_row=PyArray_DIM(image_obj, 0);
+    n_col=PyArray_DIM(image_obj, 1);
+
+
+    for (row=0; row < n_row; row++) {
+        for (col=0; col < n_col; col++) {
+
+            tu=PYGMIX_JACOB_GETU(jacob, row, col);
+            tv=PYGMIX_JACOB_GETV(jacob, row, col);
+
+            nrender=0;
+            irender=0;
+            for (i_gauss=0; i_gauss<n_gauss; i_gauss++) {
+                gauss = &gmix[i_gauss];
+
+                v = tv - gauss->row;
+                u = tu - gauss->col;
+
+                chi2 =       gauss->dcc*v*v
+                       +     gauss->drr*u*u
+                       - 2.0*gauss->drc*u*v;
+
+                if (chi2 < PYGMIX_MAX_CHI2 && chi2 >= 0.0) {
+                    scratch[irender] = -0.5*chi2;
+                    render[irender] = i_gauss;
+                    nrender++;
+                    irender++;
+                }
+            }
+            if (nrender > 0) {
+                fmath_expd_v(scratch, nrender);
+                tmp=0;
+                for (irender=0; irender<nrender; irender++) {
+                    i_gauss=render[irender];
+                    gauss = &gmix[i_gauss];
+                    tmp += gauss->pnorm*scratch[irender];
+                }
+                ptr = (double* ) PyArray_GETPTR2(image_obj,row,col);
+                (*ptr) = tmp;
+            }
+
+        } // cols
+    } // rows
+
 
     Py_INCREF(Py_None);
     return Py_None;
@@ -6521,6 +6615,7 @@ static PyMethodDef pygauss2d_funcs[] = {
     {"render_jacob",(PyCFunction)PyGMix_render_jacob, METH_VARARGS,  "render with jacobian\n"},
 
     {"render_vec",      (PyCFunction)PyGMix_render_vec, METH_VARARGS,  "render without jacobian\n"},
+    {"render_vec_by_gauss",      (PyCFunction)PyGMix_render_vec_by_gauss, METH_VARARGS,  "render without jacobian\n"},
 
     {"eval",      (PyCFunction)PyGMix_eval, METH_VARARGS,  "eval without jacobian\n"},
     {"eval_jacob",      (PyCFunction)PyGMix_eval_jacob, METH_VARARGS,  "eval with a jacobian\n"},

@@ -17,6 +17,6 @@ extern "C" double fmath_expd(double x) {
    and is what we will look to put into ngmix.
 */
 
-extern "C" void fmath_expd_v(double*x, int n) {
+extern "C" void fmath_expd_v(double* x, int n) {
     fmath::expd_v(x, (size_t)n);
 }
