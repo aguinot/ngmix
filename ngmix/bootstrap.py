@@ -2518,7 +2518,7 @@ class MaxRunner(object):
             self.send_pars=max_pars
 
         mess="model should be exp,dev,gauss, got '%s'" % model
-        assert model in ['exp','dev','gauss'],mess
+        assert model in ['exp','dev','gauss','exp3','dev5'],mess
 
         self.model=model
         self.prior=prior
