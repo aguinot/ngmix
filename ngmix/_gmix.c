@@ -269,9 +269,17 @@ static inline int get_n_gauss(int model, int *status) {
         case PyGMIX_GMIX_EXP:
             n_gauss=6;
             break;
+        case PyGMIX_GMIX_EXP3:
+            n_gauss=3;
+            break;
+
         case PyGMIX_GMIX_DEV:
             n_gauss=10;
             break;
+        case PyGMIX_GMIX_DEV5:
+            n_gauss=5;
+            break;
+
         case PyGMIX_GMIX_TURB:
             n_gauss=3;
             break;
@@ -307,7 +315,8 @@ static const double PyGMix_pvals_exp[] = {
     0.053280454055540001, 
     0.21797364640726541, 
     0.45496740582554868, 
-    0.26521634184240478};
+    0.26521634184240478
+};
 
 static const double PyGMix_fvals_exp[] = {
     0.002467115141477932, 
@@ -315,7 +324,23 @@ static const double PyGMix_fvals_exp[] = {
     0.07944063151366336, 
     0.27137669897479122, 
     0.79782256866993773, 
-    2.1623306025075739};
+    2.1623306025075739
+};
+
+static const double PyGMix_pvals_exp3[] = {
+    0.034721,
+    0.326256,
+    0.639023
+};
+
+static const double PyGMix_fvals_exp3[] = {
+    0.0425006,
+    0.313308,
+    1.40262
+};
+
+
+
 
 static const double PyGMix_pvals_dev[] = {
     6.5288960012625658e-05,
@@ -327,7 +352,8 @@ static const double PyGMix_pvals_dev[] = {
     0.11939049233042602, 
     0.20969545753234975, 
     0.29254151133139222, 
-    0.28905301416582552};
+    0.28905301416582552
+};
 
 static const double PyGMix_fvals_dev[] = {
     3.068330909892871e-07,
@@ -339,13 +365,39 @@ static const double PyGMix_fvals_dev[] = {
     0.01648881157673708,
     0.07893194619504579,
     0.4203787615506401,
-    3.055782252301236};
+    3.055782252301236
+};
+
+static const double PyGMix_pvals_dev5[] = {
+    0.00162721,
+    0.0121575,
+    0.0560083,
+    0.191577,
+    0.73863
+};
+
+static const double PyGMix_fvals_dev5[] = {
+    0.000111605,
+    0.00166534,
+    0.0157501,
+    0.126052,
+    1.31994
+};
+
+
+
 
 static const double PyGMix_pvals_turb[] = {
-    0.596510042804182,0.4034898268889178,1.303069003078001e-07};
+    0.596510042804182,
+    0.4034898268889178,
+    1.303069003078001e-07
+};
 
 static const double PyGMix_fvals_turb[] = {
-    0.5793612389470884,1.621860687127999,7.019347162356363};
+    0.5793612389470884,
+    1.621860687127999,
+    7.019347162356363
+};
 
 static const double PyGMix_pvals_gauss[] = {1.0};
 static const double PyGMix_fvals_gauss[] = {1.0};
@@ -740,6 +792,14 @@ static int gmix_fill(struct PyGMix_Gauss2D *self,
                                     PyGMix_fvals_exp,
                                     PyGMix_pvals_exp);
             break;
+        case PyGMIX_GMIX_EXP3:
+            status=gmix_fill_simple(self, n_gauss,
+                                    pars, n_pars,
+                                    model,
+                                    PyGMix_fvals_exp3,
+                                    PyGMix_pvals_exp3);
+            break;
+
         case PyGMIX_GMIX_DEV:
             status=gmix_fill_simple(self, n_gauss,
                                     pars, n_pars,
@@ -747,6 +807,14 @@ static int gmix_fill(struct PyGMix_Gauss2D *self,
                                     PyGMix_fvals_dev,
                                     PyGMix_pvals_dev);
             break;
+        case PyGMIX_GMIX_DEV5:
+            status=gmix_fill_simple(self, n_gauss,
+                                    pars, n_pars,
+                                    model,
+                                    PyGMix_fvals_dev5,
+                                    PyGMix_pvals_dev5);
+            break;
+
 
         case PyGMIX_GMIX_TURB:
             status=gmix_fill_simple(self, n_gauss,

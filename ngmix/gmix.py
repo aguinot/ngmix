@@ -1452,8 +1452,10 @@ _sersic_data_10gauss=array([
 GMIX_FULL=0
 GMIX_GAUSS=1
 GMIX_TURB=2
+
 GMIX_EXP=3
 GMIX_DEV=4
+
 GMIX_BDC=5
 GMIX_BDF=6
 GMIX_COELLIP=7
@@ -1466,16 +1468,26 @@ GMIX_CM=10
 # moments
 GMIX_GAUSSMOM=11
 
+GMIX_EXP3=12
+GMIX_DEV5=13
+
 _gmix_model_dict={'full':       GMIX_FULL,
                   GMIX_FULL:    GMIX_FULL,
                   'gauss':      GMIX_GAUSS,
                   GMIX_GAUSS:   GMIX_GAUSS,
                   'turb':       GMIX_TURB,
                   GMIX_TURB:    GMIX_TURB,
+
                   'exp':        GMIX_EXP,
                   GMIX_EXP:     GMIX_EXP,
+                  'exp3':       GMIX_EXP3,
+                  GMIX_EXP3:    GMIX_EXP3,
+
                   'dev':        GMIX_DEV,
                   GMIX_DEV:     GMIX_DEV,
+                  'dev5':       GMIX_DEV5,
+                  GMIX_DEV5:    GMIX_DEV5,
+
                   'bdc':        GMIX_BDC,
                   GMIX_BDC:     GMIX_BDC,
                   'bdf':        GMIX_BDF,
@@ -1502,10 +1514,17 @@ _gmix_string_dict={GMIX_FULL:'full',
                    'gauss':'gauss',
                    GMIX_TURB:'turb',
                    'turb':'turb',
+
                    GMIX_EXP:'exp',
                    'exp':'exp',
+                   GMIX_EXP3:'exp3',
+                   'exp3':'exp3',
+
                    GMIX_DEV:'dev',
                    'dev':'dev',
+                   GMIX_DEV5:'dev5',
+                   'dev5':'dev5',
+
                    GMIX_BDC:'bdc',
                    'bdc':'bdc',
                    GMIX_BDF:'bdf',
@@ -1530,8 +1549,12 @@ _gmix_string_dict={GMIX_FULL:'full',
 
 _gmix_npars_dict={GMIX_GAUSS:6,
                   GMIX_TURB:6,
+
                   GMIX_EXP:6,
+                  GMIX_EXP3:6,
+
                   GMIX_DEV:6,
+                  GMIX_DEV5:6,
 
                   GMIX_FRACDEV:1,
                   GMIX_CM:6,
@@ -1545,10 +1568,16 @@ _gmix_ngauss_dict={GMIX_GAUSS:1,
                    'gauss':1,
                    GMIX_TURB:3,
                    'turb':3,
+
                    GMIX_EXP:6,
                    'exp':6,
+                   GMIX_EXP3:3,
+                   'exp3':3,
+
                    GMIX_DEV:10,
                    'dev':10,
+                   GMIX_DEV5:5,
+                   'dev5':5,
 
                    GMIX_FRACDEV:16,
 
