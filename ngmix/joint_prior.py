@@ -355,124 +355,6 @@ class JointPriorSimpleHybrid(GMixND):
         return wgood
 
 
-class JointPriorSersicHybrid(JointPriorSimpleHybrid):
-    """
-    Joint prior in cen1,cen2,g1,g2,T,F,n.
-
-    parameters
-    ----------
-    cen_prior:
-        The center prior
-    g_prior:
-        The prior on g (g1,g2).
-    TF_prior:
-        Joint prior on T and F.
-    n_prior:
-        Prior on sersic index n
-    """
-    def __init__(self,
-                 cen_prior,
-                 g_prior,
-                 TF_prior,
-                 n_prior,
-                 logn_bounds=[log10(0.751), log10(5.99)],
-                 **keys):
-
-        super(JointPriorSersicHybrid,self).__init__(cen_prior,
-                                                    g_prior,
-                                                    TF_prior,
-                                                    **keys)
-
-
-        self.n_prior=n_prior
-        self.logn_bounds=self.logn_bounds
-
-    def get_lnprob_scalar(self, pars, **keys):
-        """
-        log probability for scalar input (meaning one point)
-        """
-
-        lnp=super(JointPriorSersicHybrid,self).get_lnprob_scalar(pars, **keys)
-        lnp += self.n_prior.get_lnprob_scalar(pars[6])
-        return lnp
-        
-    def get_lnprob_array(self, pars, **keys):
-        """
-        log probability for array input [N,ndims]
-        """
-        lnp = self.get_lnprob_array(pars, **keys)
-        lnp += self.n_prior.get_lnprob_array(pars[:,6])
-        return lnp
-
-    def sample(self, n=None):
-        """
-        Get random samples
-        """
-
-        if n is None:
-            is_scalar=True
-            n=1
-        else:
-            is_scalar=False
-
-        samples=zeros( (n,7) )
-
-        tsamples = super(JointPriorSersicHybrid,self).sample(n)
-
-        samples[:,0:0+6] = tsamples
-        samples[:,6] = self.n_prior.sample(n)
-
-        if is_scalar:
-            samples = samples[0,:]
-        return samples
-
-    def check_bounds_scalar(self, pars, throw=True):
-        """
-        Check bounds on T Flux
-        """
-
-        T_bounds=self.T_bounds
-        F_bounds=self.F_bounds
-        logn_bounds=self.logn_bounds
-
-        T=pars[4]
-        F=pars[5]
-        logn=pars[6]
-
-        if (  T < T_bounds[0]
-            or T > T_bounds[1]
-            or F < F_bounds[0]
-            or F > F_bounds[1]
-            or logn < logn_bounds[0]
-            or logn > logn_bounds[1]):
-
-            if throw:
-                raise GMixRangeError("T, F or n out of range")
-            else:
-                return False
-        else:
-            return True
-
-    def check_bounds_array(self,pars):
-        """
-        Check bounds on T Flux
-        """
-        T_bounds=self.T_bounds
-        F_bounds=self.F_bounds
-        logn_bounds=self.logn_bounds
-
-        T=pars[:,4]
-        F=pars[:,5]
-        logn=pars[:,6]
-
-        wgood, = where(  (T > T_bounds[0])
-                       & (T < T_bounds[1])
-                       & (F > F_bounds[0])
-                       & (F < F_bounds[1])
-                       & (logn > logn_bounds[0])
-                       & (logn < logn_bounds[1]) )
-        return wgood
-
 
 # not used currently
 
@@ -1248,6 +1130,87 @@ class PriorSimpleSep(object):
 
         rep='\n'.join(reps)
         return rep
+
+class PriorSersicSep(PriorSimpleSep):
+    def __init__(self,
+                 cen_prior,
+                 g_prior,
+                 T_prior,
+                 n_prior,
+                 F_prior):
+
+        self.n_prior=n_prior
+        super(PriorSersicSep,self).__init__(
+                 cen_prior,
+                 g_prior,
+                 T_prior,
+                 F_prior,
+        )
+
+    def get_lnprob_scalar(self, pars, **keys):
+        """
+        log probability for scalar input [ndims]
+        """
+        lnp = self.cen_prior.get_lnprob_scalar(pars[0],pars[1])
+        lnp += self.g_prior.get_lnprob_scalar2d(pars[2],pars[3])
+        lnp += self.T_prior.get_lnprob_scalar(pars[4], **keys)
+        lnp += self.n_prior.get_lnprob_scalar(pars[5], **keys)
+
+        for i, F_prior in enumerate(self.F_priors):
+            lnp += F_prior.get_lnprob_scalar(pars[6+i], **keys)
+
+        return lnp
+
+    def get_lnprob_array(self, pars, **keys):
+        """
+        log probability for array input [N,ndims]
+        """
+
+        lnp = self.cen_prior.get_lnprob_array(pars[:,0], pars[:,1])
+        lnp += self.g_prior.get_lnprob_array2d(pars[:,2],pars[:,3])
+        lnp += self.T_prior.get_lnprob_array(pars[:,4])
+        lnp += self.n_prior.get_lnprob_array(pars[:,5])
+
+        for i in xrange(self.nband):
+            F_prior=self.F_priors[i]
+            lnp += F_prior.get_lnprob_array(pars[:,6+i])
+
+        return lnp
+
+    def sample(self, n=None, **unused_keys):
+        """
+        Get random samples
+        """
+
+        if n is None:
+            is_scalar=True
+            n=1
+        else:
+            is_scalar=False
+
+        samples=zeros( (n,6+self.nband) )
+
+        cen1,cen2 = self.cen_prior.sample(n)
+        g1,g2=self.g_prior.sample2d(n)
+        T=self.T_prior.sample(n)
+        nvals=self.n_prior.sample(n)
+
+        samples[:,0] = cen1
+        samples[:,1] = cen2
+        samples[:,2] = g1
+        samples[:,3] = g2
+        samples[:,4] = T
+        samples[:,5] = nvals
+
+        for i in xrange(self.nband):
+            F_prior=self.F_priors[i]
+            F=F_prior.sample(n)
+            samples[:,6+i] = F
+
+        if is_scalar:
+            samples=samples[0,:]
+        return samples
+
 
 class PriorCoellipSame(PriorSimpleSep):
     def __init__(self,

@@ -202,6 +202,184 @@ class TFluxAndPriorGuesser(GuesserBase):
                 else:
                     break
 
+
+
+class SersicTNFluxGuesser(GuesserBase):
+    """
+    get full guesses from just T,fluxes
+
+    parameters
+    ----------
+    T: float
+        Center for T guesses
+    fluxes: float or sequences
+        Center for flux guesses
+    scaling: string
+        'linear' or 'log'
+    prior: optional
+        If sent, "fix-up" guesses if they are not allowed by the prior
+    """
+    def __init__(self, T, sersicn, fluxes, prior=None, scaling='linear'):
+        self.T=T
+
+        if numpy.isscalar(fluxes):
+            fluxes=numpy.array(fluxes, dtype='f8', ndmin=1)
+
+        self.fluxes=fluxes
+        self.prior=prior
+        self.scaling=scaling
+        
+        self.sersicn = sersicn
+
+        if T <= 0.0:
+            self.log_T = log(1.0e-10)
+        else:
+            self.log_T = log(T)
+
+        lfluxes = fluxes.copy()
+        w, = numpy.where(fluxes < 0.0)
+        if w.size > 0:
+            lfluxes[w[:]] = 1.0e-10
+        self.log_fluxes = log(lfluxes)
+
+    def __call__(self, n=1, **keys):
+        """
+        center, shape are just distributed around zero
+        """
+        fluxes=self.fluxes
+        nband=fluxes.size
+        np = 6+nband
+
+        guess=numpy.zeros( (n, np) )
+        guess[:,0] = 0.01*srandu(n)
+        guess[:,1] = 0.01*srandu(n)
+        guess[:,2] = 0.02*srandu(n)
+        guess[:,3] = 0.02*srandu(n)
+
+        guess[:,5] = self.sersicn*(1.0 + 0.1*srandu(n))
+
+        if self.scaling=='linear':
+            guess[:,4] = self.T*(1.0 + 0.1*srandu(n))
+
+            fluxes=self.fluxes
+            for band in xrange(nband):
+                guess[:,6+band] = fluxes[band]*(1.0 + 0.1*srandu(n))
+
+        else:
+            guess[:,4] = self.log_T + 0.1*srandu(n)
+
+            for band in xrange(nband):
+                guess[:,6+band] = self.log_fluxes[band] + 0.1*srandu(n)
+
+        if self.prior is not None:
+            self._fix_guess(guess, self.prior)
+
+        if n==1:
+            guess=guess[0,:]
+        return guess
+
+
+
+class SersicTNFluxAndPriorGuesser(GuesserBase):
+    """
+    Make guesses from the input T, fluxes and prior
+
+    parameters
+    ----------
+    T: float
+        Center for T guesses
+    fluxes: float or sequences
+        Center for flux guesses
+    prior:
+        cen, g drawn from this prior
+    scaling: string
+        'linear' or 'log'
+    """
+    def __init__(self, T, sersicn, fluxes, prior, scaling='linear'):
+        if numpy.isscalar(fluxes):
+            fluxes=numpy.array(fluxes, dtype='f8', ndmin=1)
+
+        self.T=T
+        self.fluxes=fluxes
+        self.prior=prior
+        self.scaling=scaling
+
+        self.sersicn = sersicn
+
+        if T <= 0.0:
+            self.log_T = log(1.0e-10)
+        else:
+            self.log_T = log(T)
+
+        lfluxes = fluxes.copy()
+        w, = numpy.where(fluxes < 0.0)
+        if w.size > 0:
+            lfluxes[w[:]] = 1.0e-10
+        self.log_fluxes = log(lfluxes)
+
+    def __call__(self, n=1, **keys):
+        """
+        center, shape are just distributed around zero
+        """
+        fluxes=self.fluxes
+        log_fluxes=self.log_fluxes
+
+        nband=fluxes.size
+        np = 6+nband
+
+        guess = self.prior.sample(n)
+
+        if self.scaling=='linear':
+            guess[:,4] = self.T*(1.0 + 0.1*srandu(n))
+        else:
+            guess[:,4] = self.log_T + 0.1*srandu(n)
+
+        guess[:,5] = self.sersicn*(1.0 + 0.1*srandu(n))
+
+        for band in xrange(nband):
+            if self.scaling=='linear':
+                guess[:,6+band] = fluxes[band]*(1.0 + 0.1*srandu(n))
+            else:
+                guess[:,6+band] = self.log_fluxes[band] + 0.1*srandu(n)
+
+        self._fix_guess(guess, self.prior)
+
+        if n==1:
+            guess=guess[0,:]
+        return guess
+
+    def _fix_guess(self, guess, prior, ntry=4):
+        """
+        just fix T and flux
+        """
+
+        n=guess.shape[0]
+        for j in xrange(n):
+            for itry in xrange(ntry):
+                try:
+                    lnp=prior.get_lnprob_scalar(guess[j,:])
+
+                    if lnp <= LOWVAL:
+                        dosample=True
+                    else:
+                        dosample=False
+                except GMixRangeError as err:
+                    dosample=True
+
+                if dosample:
+                    print_pars(guess[j,:], front="bad guess:")
+                    if itry < ntry:
+                        tguess = prior.sample()
+                        guess[j, 4:] = tguess[4:]
+                    else:
+                        # give up and just drawn a sample
+                        guess[j,:] = prior.sample()
+                else:
+                    break
+
+
+
+
 class ParsGuesser(GuesserBase):
     """
     pars include g1,g2

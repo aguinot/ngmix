@@ -1811,6 +1811,43 @@ class LMSimple(FitterBase):
 
         return nprior
 
+class LMSersic(LMSimple):
+    def __init__(self, obs, model, **keys):
+        # note calling super of super
+        super(LMSimple,self).__init__(obs, 'sersic', **keys)
+
+        # this is a dict
+        # can contain maxfev, ftol (tol in sum of squares)
+        # xtol (tol in solution), etc
+
+        lm_pars=keys.get('lm_pars',None)
+        if lm_pars is None:
+            lm_pars=_default_lm_pars
+        self.lm_pars=lm_pars
+
+
+        # center1 + center2 + shape + T + n + fluxes
+        if self.prior is None:
+            self.n_prior_pars=0
+        else:
+            self.n_prior_pars=1 + 1 + 1 + 1 + 1 + self.nband
+
+        self._set_fdiff_size()
+
+        self._band_pars=zeros(7)
+
+    def get_band_pars(self, pars_in, band):
+        """
+        Get linear pars for the specified band
+        """
+
+        pars=self._band_pars
+
+        assert self.use_logpars==False
+        pars[0:6] = pars_in[0:6]
+        pars[6] = pars_in[6+band]
+
+        return pars
 
 class LMGaussK(LMSimple):
     """

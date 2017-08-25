@@ -21,7 +21,10 @@ from .em import GMixEM, prep_image
 from .observation import Observation, ObsList, MultiBandObsList, get_mb_obs
 from .priors import srandu
 from .shape import get_round_factor
-from .guessers import TFluxGuesser, TFluxAndPriorGuesser, ParsGuesser, RoundParsGuesser
+from .guessers import (
+    TFluxGuesser, TFluxAndPriorGuesser, ParsGuesser, RoundParsGuesser,
+    SersicTNFluxGuesser,SersicTNFluxAndPriorGuesser,
+)
 from .gexceptions import GMixRangeError, BootPSFFailure, BootGalFailure
 
 from . import roundify
@@ -2518,13 +2521,19 @@ class MaxRunner(object):
             self.send_pars=max_pars
 
         mess="model should be exp,dev,gauss, got '%s'" % model
-        assert model in ['exp','dev','gauss'],mess
+        assert model in ['exp','dev','gauss','sersic'],mess
 
         self.model=model
         self.prior=prior
         self.use_logpars=use_logpars
 
         self.guesser=guesser
+
+        if self.intpars is not None:
+            self.npoints=self.intpars['npoints']
+            #print("max gal fit using npoints:",npoints)
+        else:
+            self.npoints=None
 
     def get_fitter(self):
         return self.fitter
@@ -2540,24 +2549,11 @@ class MaxRunner(object):
 
     def _go_lm(self, ntry=1):
         
-        if self.intpars is not None:
-            npoints=self.intpars['npoints']
-            #print("max gal fit using npoints:",npoints)
-        else:
-            npoints=None
-
-        fitclass=self._get_lm_fitter_class()
 
         for i in xrange(ntry):
             guess=self.guesser()
-            fitter=fitclass(self.obs,
-                            self.model,
-                            lm_pars=self.send_pars,
-                            use_logpars=self.use_logpars,
-                            use_round_T=self.use_round_T,
-                            npoints=npoints,
-                            prior=self.prior)
 
+            fitter=self._get_lm_fitter()
             fitter.go(guess)
 
             res=fitter.get_result()
@@ -2567,9 +2563,29 @@ class MaxRunner(object):
         res['ntry'] = i+1
         self.fitter=fitter
 
-    def _get_lm_fitter_class(self):
-        from .fitting import LMSimple
-        return LMSimple
+    def _get_lm_fitter(self):
+        from .fitting import LMSimple, LMSersic
+
+        if self.model=='sersic': 
+            fitter=LMSersic(
+                self.obs,
+                lm_pars=self.send_pars,
+                use_logpars=self.use_logpars,
+                use_round_T=self.use_round_T,
+                npoints=elf.npoints,
+                prior=self.prior,
+            )
+
+        else:
+            fitter=LMSimple(
+                self.obs,
+                self.model,
+                lm_pars=self.send_pars,
+                use_logpars=self.use_logpars,
+                use_round_T=self.use_round_T,
+                npoints=npoints,
+                prior=self.prior,
+            )
 
 
 class MaxRunnerGaussMom(object):
