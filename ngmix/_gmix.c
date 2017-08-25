@@ -282,7 +282,7 @@ static inline int get_n_gauss(int model, int *status) {
             n_gauss=16;
             break;
         case PyGMIX_GMIX_SERSIC:
-            n_gauss=10;
+            n_gauss=5;
             break;
         case PYGMIX_GMIX_GAUSSMOM:
             n_gauss=1;
@@ -821,6 +821,63 @@ static PyObject * PyGMix_gmix_fill(PyObject* self, PyObject* args) {
         return Py_None;
     }
 }
+
+
+/*
+   pvals and fvals sent from python layer
+*/
+static PyObject * PyGMix_gmix_fill_fvals_pvals(PyObject* self, PyObject* args) {
+    PyObject* gmix_obj=NULL;
+    PyObject* pars_obj=NULL;
+    PyObject* fvals_obj=NULL;
+    PyObject* pvals_obj=NULL;
+    const double 
+        *pars=NULL,
+        *fvals=NULL,
+        *pvals=NULL;
+    npy_intp n_gauss=0, n_pars=0;
+    int res=0;
+
+    int model=0;
+
+    struct PyGMix_Gauss2D *gmix=NULL;
+
+    if (!PyArg_ParseTuple(args, (char*)"OOOOi",
+                          &gmix_obj, 
+                          &pars_obj,
+                          &fvals_obj,
+                          &pvals_obj,
+                          &model)) {
+
+        return NULL;
+    }
+
+    gmix=(struct PyGMix_Gauss2D* ) PyArray_DATA(gmix_obj);
+    n_gauss=PyArray_SIZE(gmix_obj);
+
+    pars=(double *) PyArray_DATA(pars_obj);
+    n_pars = PyArray_SIZE(pars_obj);
+
+    fvals =(double *) PyArray_DATA(fvals_obj);
+    pvals =(double *) PyArray_DATA(pvals_obj);
+
+    res=gmix_fill_simple(gmix, n_gauss,
+                         pars, n_pars,
+                         model,
+                         fvals,
+                         pvals);
+
+
+    if (!res) {
+        // raise an exception
+        return NULL;
+    } else {
+        Py_INCREF(Py_None);
+        return Py_None;
+    }
+}
+
+
 
 /* no type checking here */
 static PyObject * PyGMix_gmix_fill_cm(PyObject* self, PyObject* args) {
@@ -6429,6 +6486,9 @@ static PyMethodDef pygauss2d_funcs[] = {
     {"eval_jacob",      (PyCFunction)PyGMix_eval_jacob, METH_VARARGS,  "eval with a jacobian\n"},
 
     {"gmix_fill",(PyCFunction)PyGMix_gmix_fill, METH_VARARGS,  "Fill the input gmix with the input pars\n"},
+
+    {"gmix_fill_fvals_pvals",(PyCFunction)PyGMix_gmix_fill_fvals_pvals, METH_VARARGS,  "Fill the input gmix with the input pars\n"},
+
     {"gmix_fill_cm",(PyCFunction)PyGMix_gmix_fill_cm, METH_VARARGS,  "Fill the input gmix with the input pars\n"},
 
     {"convolve_fill",(PyCFunction)PyGMix_convolve_fill, METH_VARARGS,  "convolve gaussian with psf and store in output\n"},
