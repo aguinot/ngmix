@@ -1812,7 +1812,7 @@ class LMSimple(FitterBase):
         return nprior
 
 class LMSersic(LMSimple):
-    def __init__(self, obs, model, **keys):
+    def __init__(self, obs,  **keys):
         # note calling super of super
         super(LMSimple,self).__init__(obs, 'sersic', **keys)
 
@@ -1848,6 +1848,11 @@ class LMSersic(LMSimple):
         pars[6] = pars_in[6+band]
 
         return pars
+
+    def _fill_gmix(self, gm, band_pars):
+        gm.fill(band_pars)
+        #_gmix.gmix_fill(gm._data, band_pars, gm._model)
+
 
 class LMGaussK(LMSimple):
     """

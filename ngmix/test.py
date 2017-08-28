@@ -8,6 +8,7 @@ from numpy.random import uniform as randu
 from pprint import pprint
 
 from . import stats
+from . import priors
 from .priors import srandu
 
 from . import joint_prior
@@ -25,8 +26,6 @@ def test():
 class TestFitting(unittest.TestCase):
 
     def setUp(self):
-        self.model='exp'
-        self.T=4.0
         self.counts=100.0
         self.g1=0.1
         self.g2=0.1
@@ -41,12 +40,12 @@ class TestFitting(unittest.TestCase):
         self.seed=100
         numpy.random.seed(self.seed)
 
-    def get_obs_data(self, noise):
+    def get_obs_data(self, model, T, noise):
         obsdata=make_test_observations(
-            self.model,
+            model,
             g1_obj=self.g1,
             g2_obj=self.g2,
-            T_obj=self.T,
+            T_obj=T,
             counts_obj=self.counts,
             noise_obj=noise,
             psf_model=self.psf_model,
@@ -62,10 +61,11 @@ class TestFitting(unittest.TestCase):
     def testMax(self):
 
         print('\n')
+        T=4.0
         for noise in [0.001, 0.1, 1.0]:
             print('='*10)
             print('noise:',noise)
-            mdict=self.get_obs_data(noise)
+            mdict=self.get_obs_data('exp',T,noise)
 
             obs=mdict['obs']
             obs.set_psf(mdict['psf_obs'])
@@ -82,7 +82,7 @@ class TestFitting(unittest.TestCase):
                       'lm_pars':{'maxfev':4000}}
 
             prior=joint_prior.make_uniform_simple_sep([0.0,0.0],     # cen
-                                                      [0.1,0.1],     # g
+                                                      [1.,1.],       # cen
                                                       [-10.0,3500.], # T
                                                       [-0.97,1.0e9]) # flux
 
@@ -95,6 +95,63 @@ class TestFitting(unittest.TestCase):
             print_pars(res['pars'],     front='pars meas: ')
             print_pars(res['pars_err'], front='pars err:  ')
             print('s2n:',res['s2n_w'])
+
+    def testSersicMax(self):
+
+        print('\n')
+        T=16.0
+        for noise in [0.001, 0.1, 1.0]:
+            for model in ['exp','dev']:
+                print('='*10)
+                print('noise:',noise)
+
+                mdict=self.get_obs_data(model,T,noise)
+
+                obs=mdict['obs']
+                obs.set_psf(mdict['psf_obs'])
+
+                inpars=mdict['pars'].copy()
+                pars=numpy.zeros(7)
+                pars[0] = inpars[0] + randu(low=-0.1,high=0.1)
+                pars[1] = inpars[1] + randu(low=-0.1,high=0.1)
+                pars[2] = inpars[2] + randu(low=-0.1,high=0.1)
+                pars[3] = inpars[3] + randu(low=-0.1,high=0.1)
+                pars[4] = inpars[4] * (1.0 + randu(low=-0.1,high=0.1))
+
+                # n
+                pars[5] = 1.0 * (1.0 + randu(low=-0.1,high=0.1))
+
+                pars[6] = inpars[5] * (1.0 + randu(low=-0.1,high=0.1))
+
+                max_pars={'method':'lm',
+                          'lm_pars':{'maxfev':4000}}
+
+                cp=priors.CenPrior(0.0, 0.0, 1.0, 1.0)
+                gp=priors.ZDisk2D(1.0)
+                Tp=priors.FlatPrior(-10.0, 3500.0)
+                np=priors.FlatPrior(0.55, 5.9)
+                Fp=priors.FlatPrior(-0.97, 1.0e9)
+
+                prior=joint_prior.PriorSersicSep(
+                    cp,
+                    gp,
+                    Tp,
+                    np,
+                    Fp,
+                )
+
+                boot=Bootstrapper(obs)
+                boot.fit_psfs('gauss', 4.0)
+                boot.fit_max('sersic', max_pars, pars, prior=prior)
+                res=boot.get_max_fitter().get_result()
+
+                print("model:",model)
+                print_pars(mdict['pars'],   front='pars true: ')
+                print_pars(res['pars'],     front='pars meas: ')
+                print_pars(res['pars_err'], front='pars err:  ')
+                print('s2n:',res['s2n_w'])
+
+
 
 def make_test_observations(model,
                            g1_obj=0.1,

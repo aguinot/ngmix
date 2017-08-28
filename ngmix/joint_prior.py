@@ -1211,6 +1211,41 @@ class PriorSersicSep(PriorSimpleSep):
             samples=samples[0,:]
         return samples
 
+    def fill_fdiff(self, pars, fdiff, **keys):
+        """
+        set sqrt(-2ln(p)) ~ (model-data)/err
+        """
+        index=0
+
+        #fdiff[index] = self.cen_prior.get_lnprob_scalar(pars[0],pars[1])
+
+        lnp1,lnp2=self.cen_prior.get_lnprob_scalar_sep(pars[0],pars[1])
+
+        fdiff[index] = lnp1
+        index += 1
+        fdiff[index] = lnp2
+        index += 1
+
+        fdiff[index] = self.g_prior.get_lnprob_scalar2d(pars[2],pars[3])
+        index += 1
+        fdiff[index] =  self.T_prior.get_lnprob_scalar(pars[4], **keys)
+        index += 1
+
+        fdiff[index] =  self.n_prior.get_lnprob_scalar(pars[5], **keys)
+        index += 1
+
+
+        for i in xrange(self.nband):
+            F_prior=self.F_priors[i]
+            fdiff[index] = F_prior.get_lnprob_scalar(pars[6+i], **keys)
+            index += 1
+
+        chi2 = -2*fdiff[0:index]
+        chi2.clip(min=0.0, max=None, out=chi2)
+        fdiff[0:index] = sqrt(chi2)
+
+        return index
+
 
 class PriorCoellipSame(PriorSimpleSep):
     def __init__(self,

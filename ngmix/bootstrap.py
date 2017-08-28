@@ -808,7 +808,11 @@ class Bootstrapper(object):
         if not hasattr(self,'psf_flux_res'):
             self.fit_gal_psf_flux()
 
-        guesser=self._get_max_guesser(guess=guess, prior=prior)
+        guesser=self._get_max_guesser(
+            gal_model,
+            guess=guess,
+            prior=prior,
+        )
 
         runner=MaxRunnerFixT(self.mb_obs_list, gal_model, pars, guesser, T,
                              prior=prior,
@@ -841,7 +845,11 @@ class Bootstrapper(object):
         if prior is not None:
             guesser=prior.sample
         else:
-            guesser=self._get_max_guesser(guess=guess, prior=prior)
+            guesser=self._get_max_guesser(
+                gal_model,
+                guess=guess,
+                prior=prior,
+            )
 
         runner=MaxRunnerGOnly(self.mb_obs_list, gal_model, max_pars, guesser, pars_in,
                               prior=prior,
@@ -877,7 +885,12 @@ class Bootstrapper(object):
         if not hasattr(self,'psf_flux_res'):
             self.fit_gal_psf_flux()
 
-        guesser=self._get_max_guesser(guess=guess, prior=prior, widths=guess_widths)
+        guesser=self._get_max_guesser(
+            gal_model,
+            guess=guess,
+            prior=prior,
+            widths=guess_widths,
+        )
 
         runner=MaxRunner(
             obs, gal_model, pars, guesser,
@@ -1023,10 +1036,13 @@ class Bootstrapper(object):
                            'psf_flux':psf_flux,
                            'psf_flux_err':psf_flux_err}
 
-    def _get_max_guesser(self, guess=None, prior=None, widths=None):
+    def _get_max_guesser(self, gal_model, guess=None, prior=None, widths=None):
         """
         get a guesser that uses the psf T and galaxy psf flux to
         generate a guess, drawing from priors on the other parameters
+
+        for sersic, we currently always base the guess around
+        a fixed number
         """
 
         if self.use_logpars:
@@ -1041,16 +1057,40 @@ class Bootstrapper(object):
 
             pres=self.get_psf_flux_result()
 
+            if gal_model=='sersic':
+                # not sure about this
+                nguess=1.5
+                if prior is None:
+                    guesser=SersicTNFluxGuesser(
+                        psf_T,
+                        nguess,
+                        pres['psf_flux'],
+                        scaling=scaling,
+                    )
+                else:
+                    guesser=SersicTNFluxGuesserAndPriorGuesser(
+                        psf_T,
+                        nguess,
+                        pres['psf_flux'],
+                        prior,
+                        scaling=scaling,
+                    )
 
-            if prior is None:
-                guesser=TFluxGuesser(psf_T,
-                                     pres['psf_flux'],
-                                     scaling=scaling)
             else:
-                guesser=TFluxAndPriorGuesser(psf_T,
-                                             pres['psf_flux'],
-                                             prior,
-                                             scaling=scaling)
+                if prior is None:
+                    guesser=TFluxGuesser(
+                        psf_T,
+                        pres['psf_flux'],
+                        scaling=scaling,
+                    )
+                else:
+                    guesser=TFluxAndPriorGuesser(
+                        psf_T,
+                        pres['psf_flux'],
+                        prior,
+                        scaling=scaling,
+                    )
+
         return guesser
 
 
@@ -1827,7 +1867,6 @@ class DeconvMetacalBootstrapper(MaxMetacalBootstrapper):
         Tpsf = Tpsf_sum/wsum
         return gpsf,Tpsf
 
-
 class CompositeBootstrapper(Bootstrapper):
     def __init__(self, obs,
                  use_logpars=False,
@@ -1921,6 +1960,7 @@ class CompositeBootstrapper(Bootstrapper):
         print('        Td/Te: %.3f clipped: %.3f' % (TdByTe_raw,TdByTe))
         
         guesser=self._get_max_guesser(
+            'cm',
             guess=guess,
             prior=prior,
             widths=guess_widths,
@@ -2572,7 +2612,6 @@ class MaxRunner(object):
                 lm_pars=self.send_pars,
                 use_logpars=self.use_logpars,
                 use_round_T=self.use_round_T,
-                npoints=elf.npoints,
                 prior=self.prior,
             )
 
@@ -2583,10 +2622,11 @@ class MaxRunner(object):
                 lm_pars=self.send_pars,
                 use_logpars=self.use_logpars,
                 use_round_T=self.use_round_T,
-                npoints=npoints,
+                npoints=self.npoints,
                 prior=self.prior,
             )
 
+        return fitter
 
 class MaxRunnerGaussMom(object):
     """
