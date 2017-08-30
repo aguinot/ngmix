@@ -16,7 +16,7 @@ from numpy.linalg import LinAlgError
 
 from . import fitting
 from .fitting import print_pars
-from .gmix import GMix, GMixModel, GMixCM, get_coellip_npars
+from .gmix import GMix, GMixModel, GMixSersic, GMixCM, get_coellip_npars
 from .em import GMixEM, prep_image
 from .observation import Observation, ObsList, MultiBandObsList, get_mb_obs
 from .priors import srandu
@@ -399,7 +399,10 @@ class Bootstrapper(object):
         """
         res=fitter.get_result()
         band_pars = fitter.get_band_pars(pars,band)
-        gm_round = GMixModel(band_pars, res['model'])
+        if 'sersic' in res['model']:
+            gm_round = GMixSersic(band_pars)
+        else:
+            gm_round = GMixModel(band_pars, res['model'])
         return gm_round
 
     def _get_gmix_round_old(self, res, pars):
