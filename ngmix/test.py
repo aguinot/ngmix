@@ -146,7 +146,7 @@ class TestFitting(unittest.TestCase):
                 boot=Bootstrapper(obs)
                 boot.fit_psfs('gauss', 4.0)
                 #boot.fit_max('sersic10', max_pars, prior=prior)
-                boot.fit_max('sersic5', max_pars, prior=prior)
+                boot.fit_max('sersic10', max_pars, prior=prior)
                 res=boot.get_max_fitter().get_result()
 
                 print("model:",model)
