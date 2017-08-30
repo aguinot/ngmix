@@ -33,11 +33,14 @@ class TestFitting(unittest.TestCase):
         self.psf_model='gauss'
         self.g1psf = 0.03
         self.g2psf = -0.01
-        self.Tpsf = 4.0
+
+        self.Tpsf = 16.0
         self.countspsf=1.0
         self.noisepsf=0.001
+        self.ntrial=100
 
-        self.seed=1000
+        #self.seed=31415
+        self.seed=None
         numpy.random.seed(self.seed)
 
     def get_obs_data(self, model, T, noise):
@@ -58,103 +61,103 @@ class TestFitting(unittest.TestCase):
 
         return obsdata
 
-    '''
+
     def testMax(self):
 
         print('\n')
-        T=4.0
-        for noise in [0.001, 0.1, 1.0]:
-            print('='*10)
-            print('noise:',noise)
-            mdict=self.get_obs_data('exp',T,noise)
+        T=64.0
+        for noise in [0.1]:
+        #for noise in [0.001, 0.1, 1.0]:
+            for model in ['dev']:
+            #for model in ['exp','dev']:
+                print('='*10)
+                print('noise:',noise)
+                mdict=self.get_obs_data(model,T,noise)
 
-            obs=mdict['obs']
-            obs.set_psf(mdict['psf_obs'])
+                for trial in xrange(self.ntrial):
+                    obs=mdict['obs']
+                    obs.set_psf(mdict['psf_obs'])
 
-            pars=mdict['pars'].copy()
-            pars[0] += randu(low=-0.1,high=0.1)
-            pars[1] += randu(low=-0.1,high=0.1)
-            pars[2] += randu(low=-0.1,high=0.1)
-            pars[3] += randu(low=-0.1,high=0.1)
-            pars[4] *= (1.0 + randu(low=-0.1,high=0.1))
-            pars[5] *= (1.0 + randu(low=-0.1,high=0.1))
+                    max_pars={'method':'lm',
+                              'lm_pars':{'maxfev':4000}}
 
-            max_pars={'method':'lm',
-                      'lm_pars':{'maxfev':4000}}
+                    prior=joint_prior.make_uniform_simple_sep([0.0,0.0],     # cen
+                                                              [1.,1.],       # cen
+                                                              [-10.0,3500.], # T
+                                                              [-0.97,1.0e9]) # flux
 
-            prior=joint_prior.make_uniform_simple_sep([0.0,0.0],     # cen
-                                                      [1.,1.],       # cen
-                                                      [-10.0,3500.], # T
-                                                      [-0.97,1.0e9]) # flux
+                    tm0=time.time()
+                    boot=Bootstrapper(obs)
+                    boot.fit_psfs('gauss', 4.0)
+                    boot.fit_max(model, max_pars,  prior=prior)
+                    tm=time.time()
 
-            boot=Bootstrapper(obs)
-            boot.fit_psfs('gauss', 4.0)
-            boot.fit_max('exp', max_pars, pars, prior=prior)
-            res=boot.get_max_fitter().get_result()
+                    res=boot.get_max_fitter().get_result()
 
-            print_pars(mdict['pars'],   front='pars true: ')
-            print_pars(res['pars'],     front='pars meas: ')
-            print_pars(res['pars_err'], front='pars err:  ')
-            print('s2n:',res['s2n_w'])
+                    print("model:",model)
+                    print_pars(mdict['pars'],   front='pars true: ')
+                    print_pars(res['pars'],     front='pars meas: ')
+                    print_pars(res['pars_err'], front='pars err:  ')
+                    print('s2n:',res['s2n_w'],"nfev:",res['nfev'])
+                    print("time:",tm-tm0)
+
     '''
     def testSersicMax(self):
 
         print('\n')
-        T=16.0
-        for noise in [0.001, 0.1, 1.0]:
-            for model in ['exp','dev']:
+        T=64.0
+        for noise in [0.1]:
+        #for noise in [0.001, 0.1, 1.0]:
+            #for model in ['exp','dev']:
+            for model in ['dev']:
                 print('='*10)
                 print('noise:',noise)
 
-                mdict=self.get_obs_data(model,T,noise)
+                for trial in xrange(self.ntrial):
+                    mdict=self.get_obs_data(model,T,noise)
 
-                obs=mdict['obs']
-                obs.set_psf(mdict['psf_obs'])
+                    obs=mdict['obs']
+                    obs.set_psf(mdict['psf_obs'])
 
-                """
-                inpars=mdict['pars'].copy()
-                pars=numpy.zeros(7)
-                pars[0] = inpars[0] + randu(low=-0.1,high=0.1)
-                pars[1] = inpars[1] + randu(low=-0.1,high=0.1)
-                pars[2] = inpars[2] + randu(low=-0.1,high=0.1)
-                pars[3] = inpars[3] + randu(low=-0.1,high=0.1)
-                pars[4] = inpars[4] * (1.0 + randu(low=-0.1,high=0.1))
+                    max_pars={'method':'lm',
+                              'lm_pars':{'maxfev':4000}}
 
-                # n
-                pars[5] = 1.0 * (1.0 + randu(low=-0.1,high=0.1))
+                    cp=priors.CenPrior(0.0, 0.0, 1.0, 1.0)
+                    gp=priors.ZDisk2D(1.0)
+                    Tp=priors.FlatPrior(-10.0, 3500.0)
+                    #np=priors.FlatPrior(0.55, 5.9)
+                    np=priors.TwoSidedErf(0.6, 0.1, 5.5, 0.1)
+                    #if model=='dev':
+                    #    np=priors.Normal(4.0, 0.5)
+                    #else:
+                    #    np=priors.Normal(1.0, 0.5)
+                    Fp=priors.FlatPrior(-0.97, 1.0e9)
 
-                pars[6] = inpars[5] * (1.0 + randu(low=-0.1,high=0.1))
-                """
+                    prior=joint_prior.PriorSersicSep(
+                        cp,
+                        gp,
+                        Tp,
+                        np,
+                        Fp,
+                    )
 
-                max_pars={'method':'lm',
-                          'lm_pars':{'maxfev':4000}}
+                    tm0=time.time()
+                    boot=Bootstrapper(obs)
+                    boot.fit_psfs('gauss', 4.0)
+                    #boot.fit_max('sersic5', max_pars, prior=prior)
+                    boot.fit_max('sersic10', max_pars, prior=prior,ntry=2)
+                    tm=time.time()
 
-                cp=priors.CenPrior(0.0, 0.0, 1.0, 1.0)
-                gp=priors.ZDisk2D(1.0)
-                Tp=priors.FlatPrior(-10.0, 3500.0)
-                np=priors.FlatPrior(0.55, 5.9)
-                Fp=priors.FlatPrior(-0.97, 1.0e9)
+                    res=boot.get_max_fitter().get_result()
 
-                prior=joint_prior.PriorSersicSep(
-                    cp,
-                    gp,
-                    Tp,
-                    np,
-                    Fp,
-                )
+                    print("model:",model)
+                    print_pars(mdict['pars'],   front='pars true: ')
+                    print_pars(res['pars'],     front='pars meas: ')
+                    print_pars(res['pars_err'], front='pars err:  ')
+                    print('s2n:',res['s2n_w'],"nfev:",res['nfev'],'ntry:',res['ntry'])
+                    print("time:",tm-tm0)
 
-                boot=Bootstrapper(obs)
-                boot.fit_psfs('gauss', 4.0)
-                #boot.fit_max('sersic10', max_pars, prior=prior)
-                boot.fit_max('sersic10', max_pars, prior=prior)
-                res=boot.get_max_fitter().get_result()
-
-                print("model:",model)
-                print_pars(mdict['pars'],   front='pars true: ')
-                print_pars(res['pars'],     front='pars meas: ')
-                print_pars(res['pars_err'], front='pars err:  ')
-                print('s2n:',res['s2n_w'])
-
+    '''
 
 
 def make_test_observations(model,
@@ -188,12 +191,12 @@ def make_test_observations(model,
 
     gm=gm_obj0.convolve(gm_psf)
 
-    im_psf=gm_psf.make_image(dims, jacobian=j, nsub=16)
+    im_psf=gm_psf.make_image(dims, jacobian=j, npoints=10)
     npsf=noise_psf*numpy.random.randn(im_psf.size).reshape(im_psf.shape)
     im_psf[:,:] += npsf
     wt_psf=zeros(im_psf.shape) + 1./noise_psf**2
 
-    im_obj=gm.make_image(dims, jacobian=j, nsub=16)
+    im_obj=gm.make_image(dims, jacobian=j, npoints=10)
     n=noise_obj*numpy.random.randn(im_obj.size).reshape(im_obj.shape)
     im_obj[:,:] += n
     wt_obj=zeros(im_obj.shape) + 1./noise_obj**2

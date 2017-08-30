@@ -1840,8 +1840,8 @@ GMIX_CM=10
 # moments
 GMIX_GAUSSMOM=11
 
-GMIX_SERSIC5=8
-GMIX_SERSIC10=12
+GMIX_SERSIC5=12
+GMIX_SERSIC10=13
 
 _gmix_model_dict={'full':       GMIX_FULL,
                   GMIX_FULL:    GMIX_FULL,
@@ -1872,6 +1872,7 @@ _gmix_model_dict={'full':       GMIX_FULL,
 
                   'sersic5':    GMIX_SERSIC5,
                   GMIX_SERSIC5: GMIX_SERSIC5,
+
                   'sersic10':    GMIX_SERSIC10,
                   GMIX_SERSIC10: GMIX_SERSIC10,
                 
