@@ -1057,7 +1057,7 @@ class Bootstrapper(object):
 
             pres=self.get_psf_flux_result()
 
-            if gal_model=='sersic':
+            if 'sersic' in gal_model:
                 # not sure about this
                 nguess=1.5
                 if prior is None:
@@ -1068,7 +1068,7 @@ class Bootstrapper(object):
                         scaling=scaling,
                     )
                 else:
-                    guesser=SersicTNFluxGuesserAndPriorGuesser(
+                    guesser=SersicTNFluxAndPriorGuesser(
                         psf_T,
                         nguess,
                         pres['psf_flux'],
@@ -2561,7 +2561,8 @@ class MaxRunner(object):
             self.send_pars=max_pars
 
         mess="model should be exp,dev,gauss, got '%s'" % model
-        assert model in ['exp','dev','gauss','sersic'],mess
+        allowed=['exp','dev','gauss','sersic','sersic5','sersic10']
+        assert model in allowed,mess
 
         self.model=model
         self.prior=prior
@@ -2606,9 +2607,10 @@ class MaxRunner(object):
     def _get_lm_fitter(self):
         from .fitting import LMSimple, LMSersic
 
-        if self.model=='sersic': 
+        if 'sersic' in self.model: 
             fitter=LMSersic(
                 self.obs,
+                model=self.model,
                 lm_pars=self.send_pars,
                 use_logpars=self.use_logpars,
                 use_round_T=self.use_round_T,

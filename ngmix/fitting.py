@@ -1812,9 +1812,10 @@ class LMSimple(FitterBase):
         return nprior
 
 class LMSersic(LMSimple):
-    def __init__(self, obs,  **keys):
+    def __init__(self, obs,  model='sersic', **keys):
         # note calling super of super
-        super(LMSimple,self).__init__(obs, 'sersic', **keys)
+        assert model in ['sersic','sersic5','sersic10']
+        super(LMSimple,self).__init__(obs, model, **keys)
 
         # this is a dict
         # can contain maxfev, ftol (tol in sum of squares)

@@ -281,9 +281,15 @@ static inline int get_n_gauss(int model, int *status) {
         case PyGMIX_GMIX_BDF:
             n_gauss=16;
             break;
-        case PyGMIX_GMIX_SERSIC:
+
+        case PyGMIX_GMIX_SERSIC5:
             n_gauss=5;
             break;
+        case PyGMIX_GMIX_SERSIC10:
+            n_gauss=10;
+            break;
+
+
         case PYGMIX_GMIX_GAUSSMOM:
             n_gauss=1;
             break;

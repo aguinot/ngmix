@@ -37,7 +37,7 @@ class TestFitting(unittest.TestCase):
         self.countspsf=1.0
         self.noisepsf=0.001
 
-        self.seed=100
+        self.seed=1000
         numpy.random.seed(self.seed)
 
     def get_obs_data(self, model, T, noise):
@@ -58,6 +58,7 @@ class TestFitting(unittest.TestCase):
 
         return obsdata
 
+    '''
     def testMax(self):
 
         print('\n')
@@ -95,7 +96,7 @@ class TestFitting(unittest.TestCase):
             print_pars(res['pars'],     front='pars meas: ')
             print_pars(res['pars_err'], front='pars err:  ')
             print('s2n:',res['s2n_w'])
-
+    '''
     def testSersicMax(self):
 
         print('\n')
@@ -110,6 +111,7 @@ class TestFitting(unittest.TestCase):
                 obs=mdict['obs']
                 obs.set_psf(mdict['psf_obs'])
 
+                """
                 inpars=mdict['pars'].copy()
                 pars=numpy.zeros(7)
                 pars[0] = inpars[0] + randu(low=-0.1,high=0.1)
@@ -122,6 +124,7 @@ class TestFitting(unittest.TestCase):
                 pars[5] = 1.0 * (1.0 + randu(low=-0.1,high=0.1))
 
                 pars[6] = inpars[5] * (1.0 + randu(low=-0.1,high=0.1))
+                """
 
                 max_pars={'method':'lm',
                           'lm_pars':{'maxfev':4000}}
@@ -142,7 +145,8 @@ class TestFitting(unittest.TestCase):
 
                 boot=Bootstrapper(obs)
                 boot.fit_psfs('gauss', 4.0)
-                boot.fit_max('sersic', max_pars, pars, prior=prior)
+                #boot.fit_max('sersic10', max_pars, prior=prior)
+                boot.fit_max('sersic5', max_pars, prior=prior)
                 res=boot.get_max_fitter().get_result()
 
                 print("model:",model)
