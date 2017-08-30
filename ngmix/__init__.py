@@ -55,5 +55,7 @@ from . import metacal
 
 from . import simobs
 
+from . import sersicfits
+
 from . import test
 
