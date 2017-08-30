@@ -1560,7 +1560,7 @@ class GMixSersic10(GMixSersicBase):
 
         return fvals, pvals
 
-GMixSersic = GMixSersic5
+GMixSersic = GMixSersic10
 
 class GMixCM(GMix):
     """
