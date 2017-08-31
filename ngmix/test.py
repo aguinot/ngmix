@@ -61,12 +61,12 @@ class TestFitting(unittest.TestCase):
 
         return obsdata
 
-
+    '''
     def testMax(self):
 
         print('\n')
         T=64.0
-        for noise in [0.1]:
+        for noise in [0.001]:
         #for noise in [0.001, 0.1, 1.0]:
             for model in ['dev']:
             #for model in ['exp','dev']:
@@ -106,10 +106,10 @@ class TestFitting(unittest.TestCase):
 
         print('\n')
         T=64.0
-        for noise in [0.1]:
+        for noise in [0.001]:
         #for noise in [0.001, 0.1, 1.0]:
-            #for model in ['exp','dev']:
-            for model in ['dev']:
+            for model in ['exp','dev']:
+            #for model in ['dev']:
                 print('='*10)
                 print('noise:',noise)
 
@@ -157,7 +157,6 @@ class TestFitting(unittest.TestCase):
                     print('s2n:',res['s2n_w'],"nfev:",res['nfev'],'ntry:',res['ntry'])
                     print("time:",tm-tm0)
 
-    '''
 
 
 def make_test_observations(model,
