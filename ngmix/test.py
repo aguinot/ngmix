@@ -61,11 +61,79 @@ class TestFitting(unittest.TestCase):
 
         return obsdata
 
-    '''
     def testMax(self):
 
         print('\n')
-        T=64.0
+        T=4.0
+        for noise in [0.001]:
+        #for noise in [0.001, 0.1, 1.0]:
+            for model in ['exp']:
+            #for model in ['dev']:
+            #for model in ['exp','dev']:
+                print('='*10)
+                print('noise:',noise)
+                mdict=self.get_obs_data(model,T,noise)
+
+                for trial in xrange(self.ntrial):
+                    obs=mdict['obs']
+                    obs.set_psf(mdict['psf_obs'])
+
+                    max_pars={
+                        #'method':'BFGS',
+                        'method':'L-BFGS-B',
+                        'tol':1.0e-5,
+                    }
+
+                    if True:
+                        max_pars['bounds'] = [
+                            (-3.0,3.0),
+                            (-3.0,3.0),
+                            (-1.0,1.0),
+                            (-1.0,1.0),
+                            (-9.9,3400.0),
+                            (-0.9,0.9e9),
+                        ]
+
+                    cen_prior=priors.CenPrior(
+                        0.0,
+                        0.0,
+                        1.0,
+                        1.0,
+                    )
+                    g_prior=priors.GPriorBA(0.3)
+                    T_prior=priors.FlatPrior(-10.0, 3500.0)
+                    F_prior=priors.FlatPrior(-0.97, 1.0e9)
+
+                    prior=joint_prior.PriorSimpleSep(
+                        cen_prior,
+                        g_prior,
+                        T_prior,
+                        F_prior,
+                    )
+
+                    #prior=None
+
+                    tm0=time.time()
+                    boot=Bootstrapper(obs)
+                    boot.fit_psfs('gauss', 4.0)
+                    boot.fit_max(model, max_pars,  prior=prior,ntry=2)
+                    tm=time.time()
+
+                    res=boot.get_max_fitter().get_result()
+
+                    print("model:",model)
+                    print_pars(mdict['pars'],   front='pars true: ')
+                    print_pars(res['pars'],     front='pars meas: ')
+                    #print_pars(res['pars_err'], front='pars err:  ')
+                    #print('s2n:',res['s2n_w'],"nfev:",res['nfev'])
+                    print("max time:",tm-tm0)
+
+
+    '''
+    def testLM(self):
+
+        print('\n')
+        T=4.0
         for noise in [0.001]:
         #for noise in [0.001, 0.1, 1.0]:
             for model in ['dev']:
@@ -99,8 +167,10 @@ class TestFitting(unittest.TestCase):
                     print_pars(res['pars'],     front='pars meas: ')
                     print_pars(res['pars_err'], front='pars err:  ')
                     print('s2n:',res['s2n_w'],"nfev:",res['nfev'])
-                    print("time:",tm-tm0)
+                    print("lm time:",tm-tm0)
 
+
+    '''
     '''
     def testSersicMax(self):
 
@@ -157,6 +227,7 @@ class TestFitting(unittest.TestCase):
                     print('s2n:',res['s2n_w'],"nfev:",res['nfev'],'ntry:',res['ntry'])
                     print("time:",tm-tm0)
 
+    '''
 
 
 def make_test_observations(model,

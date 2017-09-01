@@ -2586,7 +2586,7 @@ class MaxRunner(object):
         if self.method=='lm':
             method=self._go_lm
         else:
-            raise ValueError("bad method '%s'" % self.method)
+            method=self._go_max
 
         lnprob_max=-numpy.inf
         method(ntry=ntry)
@@ -2606,6 +2606,22 @@ class MaxRunner(object):
 
         res['ntry'] = i+1
         self.fitter=fitter
+
+    def _go_max(self, ntry=1):
+
+        for i in xrange(ntry):
+            guess=self.guesser()
+
+            fitter=self._get_max_fitter()
+            fitter.go(guess)
+
+            res=fitter.get_result()
+            if res['flags']==0:
+                break
+
+        res['ntry'] = i+1
+        self.fitter=fitter
+
 
     def _get_lm_fitter(self):
         from .fitting import LMSimple, LMSersic
@@ -2632,6 +2648,29 @@ class MaxRunner(object):
             )
 
         return fitter
+
+    def _get_max_fitter(self):
+        from .fitting import MaxSimple
+
+        pars=self.send_pars
+        if 'sersic' in self.model: 
+            fitter=MaxSersic(
+                self.obs,
+                model=self.model,
+                prior=self.prior,
+                **pars
+            )
+
+        else:
+            fitter=MaxSimple(
+                self.obs,
+                self.model,
+                prior=self.prior,
+                **pars
+            )
+
+        return fitter
+
 
 class MaxRunnerGaussMom(object):
     """

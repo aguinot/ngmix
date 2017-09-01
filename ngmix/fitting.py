@@ -1433,11 +1433,11 @@ class MaxSimple(FitterBase):
         Default is npars*200
 
     """
-    def __init__(self, obs, model, method='Nelder-Mead', **keys):
-        super(MaxSimple,self).__init__(obs, model, **keys)
+    def __init__(self, obs, model, prior=None, **keys):
+        super(MaxSimple,self).__init__(obs, model, prior=prior, **keys)
         self._obs = obs
         self._model = model
-        self.method = method
+        self.method = keys.pop('method','Nelder-Mead')
         self._band_pars = numpy.zeros(6)
 
         self._options={}
@@ -1470,19 +1470,15 @@ class MaxSimple(FitterBase):
 
         pars=self._band_pars
 
-        if self.use_logpars:
-            _gmix.convert_simple_double_logpars_band(pars_in, pars, band)
-        else:
-            pars[0:5] = pars_in[0:5]
-            pars[5] = pars_in[5+band]
-
-        if self.use_round_T:
-            from .moments import get_T
-            pars[4] = get_T(pars[4], pars[2], pars[3])
+        pars[0:5] = pars_in[0:5]
+        pars[5] = pars_in[5+band]
 
         return pars
 
     def neglnprob(self, pars):
+        """
+        the scipy fitters are minimizers not maximizers
+        """
         return -1.0*self.calc_lnprob(pars)
 
     def run_max(self, guess, **keys):
@@ -1513,9 +1509,12 @@ class MaxSimple(FitterBase):
             guess=numpy.array(guess,dtype='f8',copy=False)
             self._setup_data(guess)
 
+            tol=options.pop('tol',None)
+            bounds=options.pop('bounds',None)
             result = scipy.optimize.minimize(self.neglnprob,
                                              guess,
                                              method=self.method,
+                                             tol=tol,
                                              options=options)
             self._result = result
 
