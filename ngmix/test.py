@@ -61,6 +61,7 @@ class TestFitting(unittest.TestCase):
 
         return obsdata
 
+    '''
     def testMax(self):
 
         print('\n')
@@ -72,15 +73,17 @@ class TestFitting(unittest.TestCase):
             #for model in ['exp','dev']:
                 print('='*10)
                 print('noise:',noise)
-                mdict=self.get_obs_data(model,T,noise)
 
                 for trial in xrange(self.ntrial):
+                    mdict=self.get_obs_data(model,T,noise)
                     obs=mdict['obs']
                     obs.set_psf(mdict['psf_obs'])
 
                     max_pars={
                         #'method':'BFGS',
                         'method':'L-BFGS-B',
+                        #'method':'Nelder-Mead',
+                        #'method':'SLSQP',
                         'tol':1.0e-5,
                     }
 
@@ -110,7 +113,6 @@ class TestFitting(unittest.TestCase):
                         T_prior,
                         F_prior,
                     )
-
                     #prior=None
 
                     tm0=time.time()
@@ -128,21 +130,20 @@ class TestFitting(unittest.TestCase):
                     #print('s2n:',res['s2n_w'],"nfev:",res['nfev'])
                     print("max time:",tm-tm0)
 
-
     '''
     def testLM(self):
 
         print('\n')
-        T=4.0
+        T=13.0
         for noise in [0.001]:
         #for noise in [0.001, 0.1, 1.0]:
             for model in ['dev']:
             #for model in ['exp','dev']:
                 print('='*10)
                 print('noise:',noise)
-                mdict=self.get_obs_data(model,T,noise)
 
                 for trial in xrange(self.ntrial):
+                    mdict=self.get_obs_data(model,T,noise)
                     obs=mdict['obs']
                     obs.set_psf(mdict['psf_obs'])
 
@@ -170,7 +171,6 @@ class TestFitting(unittest.TestCase):
                     print("lm time:",tm-tm0)
 
 
-    '''
     '''
     def testSersicMax(self):
 
