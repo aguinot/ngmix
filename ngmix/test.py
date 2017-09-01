@@ -61,12 +61,11 @@ class TestFitting(unittest.TestCase):
 
         return obsdata
 
-    '''
     def testMax(self):
 
         print('\n')
         T=4.0
-        for noise in [0.001]:
+        for noise in [0.1]:
         #for noise in [0.001, 0.1, 1.0]:
             for model in ['exp']:
             #for model in ['dev']:
@@ -81,39 +80,52 @@ class TestFitting(unittest.TestCase):
 
                     max_pars={
                         #'method':'BFGS',
-                        'method':'L-BFGS-B',
+                        #'method':'L-BFGS-B',
                         #'method':'Nelder-Mead',
-                        #'method':'SLSQP',
+                        'method':'SLSQP',
                         'tol':1.0e-5,
                     }
 
+                    if False:
+                        max_pars['bounds'] = (
+                            (-25.0,25.0),
+                            (-25.0,25.0),
+                            #(None,None),
+                            #(None,None),
+                            (-0.5,0.5),
+                            (-0.5,0.5),
+                            (-0.1,50.0),
+                            (-0.1,200.0),
+                        )
                     if True:
-                        max_pars['bounds'] = [
-                            (-3.0,3.0),
-                            (-3.0,3.0),
-                            (-1.0,1.0),
-                            (-1.0,1.0),
-                            (-9.9,3400.0),
-                            (-0.9,0.9e9),
+                        max_pars['constraints'] = [
+                            {
+                                'type': 'ineq',
+                                'fun': lambda x:  0.99 - (x[2]**2 + x[3]**2)
+                            },
                         ]
 
-                    cen_prior=priors.CenPrior(
-                        0.0,
-                        0.0,
-                        1.0,
-                        1.0,
-                    )
-                    g_prior=priors.GPriorBA(0.3)
-                    T_prior=priors.FlatPrior(-10.0, 3500.0)
-                    F_prior=priors.FlatPrior(-0.97, 1.0e9)
+                    if True:
+                        cen_prior=priors.CenPrior(
+                            0.0,
+                            0.0,
+                            1.0,
+                            1.0,
+                        )
+                        g_prior=priors.GPriorBA(0.3)
+                        #T_prior=priors.FlatPrior(-10.0, 3500.0)
+                        #F_prior=priors.FlatPrior(-0.97, 1.0e9)
+                        T_prior=priors.FlatPrior(-9.9e9, 9.9e9)
+                        F_prior=priors.FlatPrior(-9.9e9, 9.9e9)
 
-                    prior=joint_prior.PriorSimpleSep(
-                        cen_prior,
-                        g_prior,
-                        T_prior,
-                        F_prior,
-                    )
-                    #prior=None
+                        prior=joint_prior.PriorSimpleSep(
+                            cen_prior,
+                            g_prior,
+                            T_prior,
+                            F_prior,
+                        )
+                    else:
+                        prior=None
 
                     tm0=time.time()
                     boot=Bootstrapper(obs)
@@ -171,6 +183,7 @@ class TestFitting(unittest.TestCase):
                     print("lm time:",tm-tm0)
 
 
+    '''
     '''
     def testSersicMax(self):
 

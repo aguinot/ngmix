@@ -1511,12 +1511,16 @@ class MaxSimple(FitterBase):
 
             tol=options.pop('tol',None)
             bounds=options.pop('bounds',None)
+            constraints=options.pop('constraints',())
             result = scipy.optimize.minimize(self.neglnprob,
                                              guess,
                                              method=self.method,
+                                             bounds=bounds,
+                                             constraints=constraints,
                                              tol=tol,
                                              options=options)
             self._result = result
+            print(result)
 
             result['model'] = self.model_name
             if result['success']:
