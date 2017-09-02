@@ -29,7 +29,7 @@ class TestFitting(unittest.TestCase):
         self.counts=100.0
         self.g1=0.1
         self.g2=0.1
-        self.T=4.0
+        self.T=12.0
         self.noises=[0.001]
         self.models=['exp']
 
@@ -41,10 +41,10 @@ class TestFitting(unittest.TestCase):
         self.Tpsf = 16.0
         self.countspsf=1.0
         self.noisepsf=0.001
-        self.ntrial=100
+        self.ntrial=10
 
-        #self.seed=31415
-        self.seed=None
+        self.seed=31415
+        #self.seed=None
         numpy.random.seed(self.seed)
 
     def get_obs_data(self, model, T, noise):
@@ -83,7 +83,9 @@ class TestFitting(unittest.TestCase):
                         #'method':'L-BFGS-B',
                         #'method':'Nelder-Mead',
                         'method':'SLSQP',
-                        'tol':1.0e-1,
+                        #'method':'COBYLA',
+                        #'method':'trust-ncg',
+                        'tol':1.0e-5,
                     }
 
                     if False:
@@ -113,10 +115,13 @@ class TestFitting(unittest.TestCase):
                             1.0,
                         )
                         g_prior=priors.GPriorBA(0.3)
-                        #T_prior=priors.FlatPrior(-10.0, 3500.0)
-                        #F_prior=priors.FlatPrior(-0.97, 1.0e9)
-                        T_prior=priors.FlatPrior(-9.9e9, 9.9e9)
-                        F_prior=priors.FlatPrior(-9.9e9, 9.9e9)
+                        #g_prior=priors.ZDisk2D(0.99)
+                        T_prior=priors.FlatPrior(-10.0, 3500.0)
+                        F_prior=priors.FlatPrior(-0.97, 1.0e9)
+                        #T_prior=priors.FlatPrior(-9.9e9, 9.9e9)
+                        #F_prior=priors.FlatPrior(-9.9e9, 9.9e9)
+                        #T_prior=priors.Normal(self.T, 0.1*self.T)
+                        #F_prior=priors.Normal(self.counts, 0.1*self.counts)
 
                         prior=joint_prior.PriorSimpleSep(
                             cen_prior,
@@ -143,7 +148,6 @@ class TestFitting(unittest.TestCase):
                     print("max nfev:",res['nfev'])
                     print("max time:",tm-tm0)
 
-    '''
     def testLM(self):
 
         print('\n')
@@ -157,8 +161,15 @@ class TestFitting(unittest.TestCase):
                     obs=mdict['obs']
                     obs.set_psf(mdict['psf_obs'])
 
-                    max_pars={'method':'lm',
-                              'lm_pars':{'maxfev':4000}}
+                    lm_pars = {
+                        'maxfev':2000,
+                        'xtol': 5.0e-5,
+                        'ftol': 5.0e-5,
+                    }
+                    max_pars=dict(
+                        method='lm',
+                        lm_pars=lm_pars,
+                    )
 
                     prior=joint_prior.make_uniform_simple_sep([0.0,0.0],     # cen
                                                               [1.,1.],       # cen
@@ -182,7 +193,6 @@ class TestFitting(unittest.TestCase):
                     print("lm time:",tm-tm0)
 
 
-    '''
     '''
     def testSersicMax(self):
 

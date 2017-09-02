@@ -1520,7 +1520,6 @@ class MaxSimple(FitterBase):
                                              tol=tol,
                                              options=options)
             self._result = result
-            print(result)
 
             result['model'] = self.model_name
             if result['success']:
