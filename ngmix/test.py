@@ -29,10 +29,14 @@ class TestFitting(unittest.TestCase):
         self.counts=100.0
         self.g1=0.1
         self.g2=0.1
+        self.T=4.0
+        self.noises=[0.001]
+        self.models=['exp']
 
         self.psf_model='gauss'
         self.g1psf = 0.03
         self.g2psf = -0.01
+
 
         self.Tpsf = 16.0
         self.countspsf=1.0
@@ -64,17 +68,13 @@ class TestFitting(unittest.TestCase):
     def testMax(self):
 
         print('\n')
-        T=4.0
-        for noise in [0.1]:
-        #for noise in [0.001, 0.1, 1.0]:
-            for model in ['exp']:
-            #for model in ['dev']:
-            #for model in ['exp','dev']:
+        for noise in self.noises:
+            for model in self.models:
                 print('='*10)
                 print('noise:',noise)
 
                 for trial in xrange(self.ntrial):
-                    mdict=self.get_obs_data(model,T,noise)
+                    mdict=self.get_obs_data(model,self.T,noise)
                     obs=mdict['obs']
                     obs.set_psf(mdict['psf_obs'])
 
@@ -83,17 +83,17 @@ class TestFitting(unittest.TestCase):
                         #'method':'L-BFGS-B',
                         #'method':'Nelder-Mead',
                         'method':'SLSQP',
-                        'tol':1.0e-5,
+                        'tol':1.0e-1,
                     }
 
                     if False:
                         max_pars['bounds'] = (
                             (-25.0,25.0),
                             (-25.0,25.0),
-                            #(None,None),
-                            #(None,None),
-                            (-0.5,0.5),
-                            (-0.5,0.5),
+                            (None,None),
+                            (None,None),
+                            #(-0.5,0.5),
+                            #(-0.5,0.5),
                             (-0.1,50.0),
                             (-0.1,200.0),
                         )
@@ -137,25 +137,23 @@ class TestFitting(unittest.TestCase):
 
                     print("model:",model)
                     print_pars(mdict['pars'],   front='pars true: ')
-                    print_pars(res['pars'],     front='pars meas: ')
+                    print_pars(res['pars'],     front='max pars meas: ')
                     #print_pars(res['pars_err'], front='pars err:  ')
                     #print('s2n:',res['s2n_w'],"nfev:",res['nfev'])
+                    print("max nfev:",res['nfev'])
                     print("max time:",tm-tm0)
 
     '''
     def testLM(self):
 
         print('\n')
-        T=13.0
-        for noise in [0.001]:
-        #for noise in [0.001, 0.1, 1.0]:
-            for model in ['dev']:
-            #for model in ['exp','dev']:
+        for noise in self.noises:
+            for model in self.models:
                 print('='*10)
                 print('noise:',noise)
 
                 for trial in xrange(self.ntrial):
-                    mdict=self.get_obs_data(model,T,noise)
+                    mdict=self.get_obs_data(model,self.T,noise)
                     obs=mdict['obs']
                     obs.set_psf(mdict['psf_obs'])
 
@@ -170,16 +168,17 @@ class TestFitting(unittest.TestCase):
                     tm0=time.time()
                     boot=Bootstrapper(obs)
                     boot.fit_psfs('gauss', 4.0)
-                    boot.fit_max(model, max_pars,  prior=prior)
+                    boot.fit_max(model, max_pars,  prior=prior, ntry=2)
                     tm=time.time()
 
                     res=boot.get_max_fitter().get_result()
 
                     print("model:",model)
                     print_pars(mdict['pars'],   front='pars true: ')
-                    print_pars(res['pars'],     front='pars meas: ')
-                    print_pars(res['pars_err'], front='pars err:  ')
-                    print('s2n:',res['s2n_w'],"nfev:",res['nfev'])
+                    print_pars(res['pars'],     front='lm pars meas: ')
+                    print_pars(res['pars_err'], front='lm pars err:  ')
+                    print('lm s2n:',res['s2n_w'])
+                    print("lm nfev:",res['nfev'])
                     print("lm time:",tm-tm0)
 
 
@@ -188,16 +187,13 @@ class TestFitting(unittest.TestCase):
     def testSersicMax(self):
 
         print('\n')
-        T=64.0
-        for noise in [0.001]:
-        #for noise in [0.001, 0.1, 1.0]:
-            for model in ['exp','dev']:
-            #for model in ['dev']:
+        for noise in self.noises:
+            for model in self.models:
                 print('='*10)
                 print('noise:',noise)
 
                 for trial in xrange(self.ntrial):
-                    mdict=self.get_obs_data(model,T,noise)
+                    mdict=self.get_obs_data(model,self.T,noise)
 
                     obs=mdict['obs']
                     obs.set_psf(mdict['psf_obs'])
