@@ -41,7 +41,7 @@ class TestFitting(unittest.TestCase):
         self.Tpsf = 16.0
         self.countspsf=1.0
         self.noisepsf=0.001
-        self.ntrial=10
+        self.ntrial=1000
 
         self.seed=31415
         #self.seed=None
@@ -193,8 +193,7 @@ class TestFitting(unittest.TestCase):
                     print("lm time:",tm-tm0)
 
 
-    '''
-    def testSersicMax(self):
+    def testLMSersic(self):
 
         print('\n')
         for noise in self.noises:
@@ -212,7 +211,7 @@ class TestFitting(unittest.TestCase):
                               'lm_pars':{'maxfev':4000}}
 
                     cp=priors.CenPrior(0.0, 0.0, 1.0, 1.0)
-                    gp=priors.ZDisk2D(1.0)
+                    gp=priors.GPriorBA(0.3)
                     Tp=priors.FlatPrior(-10.0, 3500.0)
                     #np=priors.FlatPrior(0.55, 5.9)
                     np=priors.TwoSidedErf(0.6, 0.1, 5.5, 0.1)
@@ -233,7 +232,6 @@ class TestFitting(unittest.TestCase):
                     tm0=time.time()
                     boot=Bootstrapper(obs)
                     boot.fit_psfs('gauss', 4.0)
-                    #boot.fit_max('sersic5', max_pars, prior=prior)
                     boot.fit_max('sersic10', max_pars, prior=prior,ntry=2)
                     tm=time.time()
 
@@ -243,10 +241,11 @@ class TestFitting(unittest.TestCase):
                     print_pars(mdict['pars'],   front='pars true: ')
                     print_pars(res['pars'],     front='pars meas: ')
                     print_pars(res['pars_err'], front='pars err:  ')
-                    print('s2n:',res['s2n_w'],"nfev:",res['nfev'],'ntry:',res['ntry'])
-                    print("time:",tm-tm0)
+                    print('lm sersic s2n:',res['s2n_w'])
+                    print("lm sersic nfev:",res['nfev'])
+                    print('lm sersic ntry:',res['ntry'])
+                    print("lm sersic time:",tm-tm0)
 
-    '''
 
 
 def make_test_observations(model,
