@@ -10,6 +10,7 @@
 
  */
 
+#include <omp.h>
 #include <complex.h>
 #include <Python.h>
 #include <numpy/arrayobject.h> 
@@ -3233,6 +3234,113 @@ static PyObject * PyGMix_fill_fdiff(PyObject* self, PyObject* args) {
     return retval;
 }
 
+static void fill_fdiff_omp(
+    const struct PyGMix_Gauss2D *gmix,
+    npy_intp ngauss,
+    const struct PyGMix_Jacobian* jacob,
+    const double * restrict image,
+    const double * restrict weight,
+    npy_intp nrow,
+    npy_intp ncol,
+    double * restrict fdiff
+)
+{
+    double
+        u=0, v=0,
+        data=0,
+        model=0,
+        ivar=0, ierr=0;
+
+    npy_intp row=0, col=0, index=0;
+
+#pragma omp parallel for \
+        default(none) \
+        shared(image,weight,nrow,ncol,ngauss,fdiff,jacob,gmix) \
+        private(row,col,u,v,index,data,ierr,ivar,model)
+    for (row=0; row < nrow; row++) {
+        for (col=0; col < ncol; col++) {
+
+            u=PYGMIX_JACOB_GETU(jacob, row, col);
+            v=PYGMIX_JACOB_GETV(jacob, row, col);
+
+            index = row*ncol + col;
+
+            ivar=weight[index];
+            if ( ivar > 0.0) {
+
+                ierr=sqrt(ivar);
+
+                data=image[index];
+
+                model=PYGMIX_GMIX_EVAL(gmix, ngauss, v, u);
+
+                fdiff[index] = (model-data)*ierr;
+
+            } else {
+                fdiff[index] = 0.0;
+            }
+        }
+    }
+
+}
+static PyObject * PyGMix_fill_fdiff_omp(PyObject* self, PyObject* args) {
+
+    PyObject* gmix_obj=NULL;
+    PyObject* image_obj=NULL;
+    PyObject* weight_obj=NULL;
+    PyObject* jacob_obj=NULL;
+    PyObject* fdiff_obj=NULL;
+    npy_intp
+        ngauss=0,
+        nrow=0, ncol=0;
+    int start=0;
+
+
+    struct PyGMix_Gauss2D *gmix=NULL;//, *gauss=NULL;
+    struct PyGMix_Jacobian *jacob=NULL;
+
+    double *fdiff=NULL, *image=NULL, *weight=NULL;
+
+    if (!PyArg_ParseTuple(args, (char*)"OOOOOi", 
+                          &gmix_obj, &image_obj, &weight_obj, &jacob_obj,
+                          &fdiff_obj, &start)) {
+        return NULL;
+    }
+
+    nrow=PyArray_DIM(image_obj, 0);
+    ncol=PyArray_DIM(image_obj, 1);
+
+    image  = (double *) PyArray_DATA(image_obj);
+    weight = (double *) PyArray_DATA(weight_obj);
+    jacob  = (struct PyGMix_Jacobian* ) PyArray_DATA(jacob_obj);
+
+    // we might start somewhere after the priors
+    // note fdiff is 1-d
+    fdiff  = (double *) PyArray_GETPTR1(fdiff_obj,start);
+
+    gmix=(struct PyGMix_Gauss2D* ) PyArray_DATA(gmix_obj);
+    ngauss=PyArray_SIZE(gmix_obj);
+
+    if (!gmix_set_norms_if_needed(gmix, ngauss)) {
+        return NULL;
+    }
+
+    fill_fdiff_omp(
+        gmix,
+        ngauss,
+        jacob,
+        image,
+        weight,
+        nrow,
+        ncol,
+        fdiff
+    );
+
+    Py_RETURN_NONE;
+}
+
+
+
 static PyObject * PyGMix_fill_fdiff_gauleg(PyObject* self, PyObject* args) {
 
     PyObject* gmix_obj=NULL;
@@ -6413,6 +6521,7 @@ static PyMethodDef pygauss2d_funcs[] = {
     {"get_loglike_robust", (PyCFunction)PyGMix_get_loglike_robust,  METH_VARARGS,  "calculate likelihood with robust metric\n"},
 
     {"fill_fdiff",  (PyCFunction)PyGMix_fill_fdiff,  METH_VARARGS,  "fill fdiff for LM\n"},
+    {"fill_fdiff_omp",  (PyCFunction)PyGMix_fill_fdiff_omp,  METH_VARARGS,  "fill fdiff for LM\n"},
     {"fill_fdiff_gauleg",  (PyCFunction)PyGMix_fill_fdiff_gauleg,  METH_VARARGS,  "fill fdiff for LM, integrating over pixels\n"},
     {"fill_fdiff_sub",  (PyCFunction)PyGMix_fill_fdiff_sub,  METH_VARARGS,  "fill fdiff for LM with sub-pixel integration\n"},
 

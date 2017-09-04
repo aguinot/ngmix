@@ -1770,17 +1770,26 @@ class LMSimple(FitterBase):
 
                 for obs,gm in zip(obs_list, gmix_list):
 
-                    res = gm.fill_fdiff(obs, fdiff, start=start,
-                                        nsub=self.nsub, npoints=self.npoints)
+                    if more:
+                        res = gm.fill_fdiff(obs, fdiff, start=start,
+                                            nsub=self.nsub, npoints=self.npoints)
 
-                    s2n_numer += res['s2n_numer']
-                    s2n_denom += res['s2n_denom']
-                    npix += res['npix']
+                        s2n_numer += res['s2n_numer']
+                        s2n_denom += res['s2n_denom']
+                        npix += res['npix']
 
+                    else:
+                        res = gm.fill_fdiff_omp(
+                        #res = gm.fill_fdiff(
+                            obs,
+                            fdiff,
+                            start=start,
+                        )
                     start += obs.image.size
 
         except GMixRangeError as err:
             fdiff[:] = LOWVAL
+
             s2n_numer=0.0
             s2n_denom=BIGVAL
 

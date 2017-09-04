@@ -208,7 +208,7 @@ static double _exp3_lookup[] = {  5.10908903e-12,   1.38879439e-11,   3.77513454
 #define PYGMIX_GMIX_EVAL(gmix, n_gauss, rowval, colval) ({     \
     int _i=0;                                                  \
     double _gm_val=0.0;                                        \
-    struct PyGMix_Gauss2D* _gauss=gmix;                        \
+    const struct PyGMix_Gauss2D* _gauss=gmix;                  \
     for (_i=0; _i< (n_gauss); _i++) {                          \
         _gm_val += PYGMIX_GAUSS_EVAL(_gauss, (rowval), (colval)); \
         _gauss++;                                              \
