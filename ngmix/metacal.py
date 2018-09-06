@@ -377,6 +377,9 @@ class Metacal(object):
 
         newobs = self._make_obs(sheared_image, newpsf_image)
 
+        if self.shear_weight and shear is not None:
+            newobs.weight = self._get_sheared_weight(shear)
+
         # this is the pixel-convolved psf object, used to draw the
         # psf image
         newobs.psf.galsim_obj = newpsf_obj
@@ -563,6 +566,28 @@ class Metacal(object):
 
         return imconv
 
+    def _get_sheared_weight(self, shear):
+        #print("SHEARING WEIGHT")
+        new_iweight = self.weight_int.shear(
+            g1=shear.g1, g2=shear.g2,
+        )
+        try:
+            new_gsweight = self.weight_image.copy()
+            new_iweight.drawImage(
+                image=new_gsweight,
+            )
+            new_weight = new_gsweight.array
+            #import images
+            #images.view(newobs.weight)
+            #if 'q'==raw_input('hit a key (q to quit): '):
+            #    stop
+        except RuntimeError as err:
+            # argh, galsim uses generic exceptions
+            raise GMixRangeError("galsim error: '%s'" % str(err))
+
+        return new_weight
+
+
     def get_sheared_image_nopsf(self, shear):
         """
         get the image sheared by the reqested amount, pre-psf and pre-pixel
@@ -594,6 +619,7 @@ class Metacal(object):
         self.symmetrize_psf=kw.get('symmetrize_psf',False)
 
         self.shear_pixelized_psf=kw.get('shear_pixelized_psf',False)
+        self.shear_weight=kw.get('shear_weight',False)
 
         obs=self.obs
         if not obs.has_psf():
@@ -639,6 +665,18 @@ class Metacal(object):
             self.psf_int_nopix = self._get_symmetrized_psf_nopix()
         else:
             self.psf_int_nopix = galsim.Convolve([psf_int, self.pixel_inv])
+
+        if self.shear_weight:
+            self.weight_image = galsim.Image(
+                obs.weight.copy(),
+                wcs=self.get_wcs(),
+            )
+
+            self.weight_int = galsim.InterpolatedImage(
+                self.weight_image,
+                x_interpolant = self.interp,
+            )
+
 
     def _get_symmetrized_psf_nopix(self):
         sym_psf_int = _make_symmetrized_gsimage_int(
