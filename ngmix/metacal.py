@@ -600,7 +600,9 @@ class Metacal(object):
             raise ValueError("observation must have a psf observation set")
 
         self._set_pixel()
-        self._set_interp()
+        self._set_interp(**kw)
+        self._set_kinterp(**kw)
+        self._set_pad_factor(**kw)
 
     def _set_data(self):
         """
@@ -619,14 +621,22 @@ class Metacal(object):
                                       wcs=self.get_psf_wcs())
 
         # interpolated psf image
-        psf_int = galsim.InterpolatedImage(self.psf_image,
-                                           x_interpolant = self.interp)
+        psf_int = galsim.InterpolatedImage(
+            self.psf_image,
+            x_interpolant = self.interp,
+            k_interpolant = self.kinterp,
+            pad_factor=self.pad_factor,
+        )
 
         # this can be used to deconvolve the psf from the galaxy image
         psf_int_inv = galsim.Deconvolve(psf_int)
 
-        self.image_int = galsim.InterpolatedImage(self.image,
-                                                  x_interpolant=self.interp)
+        self.image_int = galsim.InterpolatedImage(
+            self.image,
+            x_interpolant=self.interp,
+            k_interpolant = self.kinterp,
+            pad_factor=self.pad_factor,
+        )
 
 
         # deconvolved galaxy image, psf+pixel removed
@@ -749,11 +759,64 @@ class Metacal(object):
         self.pixel     = wcs.toWorld(galsim.Pixel(scale=1))
         self.pixel_inv = galsim.Deconvolve(self.pixel)
 
-    def _set_interp(self):
+    def _set_interp(self, **kw):
         """
         set the laczos interpolation configuration
         """
-        self.interp = 'lanczos15'
+        self.interp = kw.get('interp','lanczos15')
+        if 'lanczos' in self.interp:
+            if 'conserve_dc' in kw or 'interp_tol' in kw:
+                n=int(self.interp[-2:])
+                conserve_dc=kw.get('conserve_dc',True)
+                tol=kw.get('interp_tol',1.0e-4)
+                print('    conserve_dc:',conserve_dc)
+                print('    tol:',tol)
+                self.interp = galsim.Lanczos(
+                    n,
+                    conserve_dc=conserve_dc,
+                    tol=tol,
+                )
+        elif 'quintic' in self.interp and 'interp_tol' in kw:
+            print('tol:',kw['interp_tol'])
+            self.interp=galsim.Quintic(
+                tol=kw['interp_tol'],
+            )
+
+        print('using interp:',self.interp)
+
+    def _set_kinterp(self, **kw):
+        """
+        set the laczos interpolation configuration
+        """
+        self.kinterp = kw.get('kinterp','quintic')
+        print('using kinterp:',self.kinterp)
+
+        if 'lanczos' in self.kinterp:
+            if 'kconserve_dc' in kw or 'kinterp_tol' in kw:
+                n=int(self.kinterp[-2:])
+                kconserve_dc=kw.get('kconserve_dc',True)
+                ktol=kw.get('kinterp_tol',1.0e-4)
+                print('    kconserve_dc:',kconserve_dc)
+                print('    ktol:',ktol)
+                self.kinterp = galsim.Lanczos(
+                    n,
+                    conserve_dc=kconserve_dc,
+                    tol=ktol,
+                )
+        elif 'quintic' in self.kinterp and 'kinterp_tol' in kw:
+            print('ktol:',kw['kinterp_tol'])
+            self.kinterp=galsim.Quintic(
+                tol=kw['kinterp_tol'],
+            )
+
+
+    def _set_pad_factor(self, **kw):
+        """
+        set the pad factor for the ffts
+        """
+        self.pad_factor = kw.get('pad_factor',4.0)
+        print('using pad_factor:',self.pad_factor)
+
 
     def _make_psf_obs(self, psf_im):
 
