@@ -603,6 +603,7 @@ class Metacal(object):
         self._set_interp(**kw)
         self._set_kinterp(**kw)
         self._set_pad_factor(**kw)
+        self._set_noise_pad_image(**kw)
 
     def _set_data(self):
         """
@@ -636,6 +637,7 @@ class Metacal(object):
             x_interpolant=self.interp,
             k_interpolant = self.kinterp,
             pad_factor=self.pad_factor,
+            pad_image=self.pad_image,
         )
 
 
@@ -817,6 +819,24 @@ class Metacal(object):
         self.pad_factor = kw.get('pad_factor',4.0)
         print('using pad_factor:',self.pad_factor)
 
+    def _set_noise_pad_image(self, **kw):
+        """
+        possibly make a noise image for padding
+        """
+        donoise=kw.get('noise_pad',False)
+        if donoise:
+            wtmed=numpy.median(self.obs.weight)
+            sigma=sqrt(1.0/wtmed)
+            dims=array(self.obs.image.shape)*int(self.pad_factor)
+            if 'rng' in kw:
+                rim = kw['rng'].normal(scale=sigma, size=dims)
+            else:
+                rim = numpy.random.normal(scale=sigma, size=dims)
+            print("noise pad dims:",dims)
+
+            self.pad_image=galsim.ImageD(rim)
+        else:
+            self.pad_image=None
 
     def _make_psf_obs(self, psf_im):
 
