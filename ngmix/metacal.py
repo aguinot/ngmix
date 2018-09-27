@@ -771,42 +771,42 @@ class Metacal(object):
                 n=int(self.interp[-2:])
                 conserve_dc=kw.get('conserve_dc',True)
                 tol=kw.get('interp_tol',1.0e-4)
-                print('    conserve_dc:',conserve_dc)
-                print('    tol:',tol)
+                #print('    conserve_dc:',conserve_dc)
+                #print('    tol:',tol)
                 self.interp = galsim.Lanczos(
                     n,
                     conserve_dc=conserve_dc,
                     tol=tol,
                 )
         elif 'quintic' in self.interp and 'interp_tol' in kw:
-            print('tol:',kw['interp_tol'])
+            #print('tol:',kw['interp_tol'])
             self.interp=galsim.Quintic(
                 tol=kw['interp_tol'],
             )
 
-        print('using interp:',self.interp)
+        #print('using interp:',self.interp)
 
     def _set_kinterp(self, **kw):
         """
         set the laczos interpolation configuration
         """
         self.kinterp = kw.get('kinterp','quintic')
-        print('using kinterp:',self.kinterp)
+        #print('using kinterp:',self.kinterp)
 
         if 'lanczos' in self.kinterp:
             if 'kconserve_dc' in kw or 'kinterp_tol' in kw:
                 n=int(self.kinterp[-2:])
                 kconserve_dc=kw.get('kconserve_dc',True)
                 ktol=kw.get('kinterp_tol',1.0e-4)
-                print('    kconserve_dc:',kconserve_dc)
-                print('    ktol:',ktol)
+                #print('    kconserve_dc:',kconserve_dc)
+                #print('    ktol:',ktol)
                 self.kinterp = galsim.Lanczos(
                     n,
                     conserve_dc=kconserve_dc,
                     tol=ktol,
                 )
         elif 'quintic' in self.kinterp and 'kinterp_tol' in kw:
-            print('ktol:',kw['kinterp_tol'])
+            #print('ktol:',kw['kinterp_tol'])
             self.kinterp=galsim.Quintic(
                 tol=kw['kinterp_tol'],
             )
@@ -817,7 +817,7 @@ class Metacal(object):
         set the pad factor for the ffts
         """
         self.pad_factor = kw.get('pad_factor',4.0)
-        print('using pad_factor:',self.pad_factor)
+        #print('using pad_factor:',self.pad_factor)
 
     def _set_noise_pad_image(self, **kw):
         """
