@@ -104,7 +104,7 @@ class GMixEM(object):
             im *= (counts/im.sum())
         return im
 
-    def go(self, gmix_guess, sky_guess, maxiter=100, tol=1.e-6):
+    def go(self, gmix_guess, sky_guess, maxiter=100, tol=1.e-6, check_convergence=True):
         """
         Run the em algorithm from the input starting guesses
 
@@ -126,6 +126,7 @@ class GMixEM(object):
             del self._gm
 
         conf=self._make_conf()
+        conf['check_convergence'] = 1 if check_convergence else 0
         conf['tol'] = tol
         conf['maxiter'] = maxiter
         conf['sky_guess'] = sky_guess
@@ -149,8 +150,9 @@ class GMixEM(object):
             pars=gm.get_full_pars()
             self._gm=GMix(pars=pars)
 
-            if numiter >= maxiter:
-                flags = EM_MAXITER
+            if conf['check_convergence']:
+                if numiter >= maxiter:
+                    flags = EM_MAXITER
 
             result={
                 'flags':flags,
@@ -208,6 +210,7 @@ _sums_dtype=[
 _sums_dtype=numpy.dtype(_sums_dtype,align=True)
 
 _em_conf_dtype=[
+    ('check_convergence','i4'),
     ('tol','f8'),
     ('maxiter','i4'),
     ('sky_guess','f8'),

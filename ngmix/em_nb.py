@@ -34,6 +34,7 @@ def em_run(conf, pixels, sums, gmix):
     """
 
     gmix_set_norms(gmix)
+    check_convergence=conf['check_convergence']
     tol=conf['tol']
     counts=conf['counts']
 
@@ -75,8 +76,9 @@ def em_run(conf, pixels, sums, gmix):
         e1diff    = abs(e1-e1_last)
         e2diff    = abs(e2-e2_last)
 
-        if ( frac_diff < tol and e1diff < tol and e2diff < tol ):
-            break
+        if check_convergence:
+            if ( frac_diff < tol and e1diff < tol and e2diff < tol ):
+                break
 
         T_last, e1_last, e2_last = T, e1, e2
 
