@@ -610,3 +610,49 @@ def g1g2_to_e1e2(g1, g2):
         e2 = fac*g2
 
     return e1, e2
+
+@njit
+def get_weighted_sums(wt, pixels, resarray):
+    """
+    do sums for calculating the weighted moments
+    """
+
+    if wt['norm_set'][0] == 0:
+        gmix_set_norms(wt)
+
+    res=resarray[0]
+    vcen = wt['row'][0]
+    ucen = wt['col'][0]
+    F = res['F']
+
+    n_pixels = pixels.size
+    for i_pixel in xrange(n_pixels):
+
+        pixel = pixels[i_pixel]
+        weight = gmix_eval_pixel_fast(wt, pixel)
+
+        var = 1.0/(pixel['ierr']*pixel['ierr'])
+
+        vmod = pixel['v']-vcen
+        umod = pixel['u']-ucen
+
+        wdata = weight*pixel['val']
+        w2 = weight*weight
+
+
+        F[0] = pixel['v']
+        F[1] = pixel['u']
+        F[2] = umod*umod - vmod*vmod
+        F[3] = 2*vmod*umod
+        F[4] = umod*umod + vmod*vmod
+        F[5] = 1.0
+
+        res['wsum'] += weight
+        res['npix'] += 1
+
+        for i in xrange(6):
+            res['sums'][i] += wdata*F[i]
+            for j in xrange(6):
+                res['sums_cov'][i,j] += w2*var*F[i]*F[j]
+
+

@@ -541,6 +541,52 @@ class GMix(object):
             start,
         )
 
+    def get_weighted_sums(self, obs):
+        """
+        get sums for weighted moments
+        """
+        from . import admom
+        from .gmix_nb import get_weighted_sums
+        dt=numpy.dtype(admom._admom_result_dtype, align=True)
+        res=numpy.zeros(1, dtype=dt)
+
+        gm=self.get_data()
+        get_weighted_sums(gm, obs.pixels, res)
+        return res[0]
+
+    def get_mean_weighted_sums(self, obs, rowmin, rowmax, colmin, colmax,s2n_min=10.0):
+
+        from . import admom
+        from .gmix_nb import get_weighted_sums
+
+        res=numpy.zeros(1, dtype=admom._admom_result_dtype)
+        restmp=numpy.zeros(1, dtype=admom._admom_result_dtype)
+
+        jacob=obs.jacobian
+        wt=self.copy()
+        wtdata=wt.get_data()
+
+        for row in xrange(rowmin,rowmax+1):
+            for col in xrange(colmin,colmax+1):
+                restmp['wsum'][0] = 0.0
+                restmp['sums'][0,:] = 0.0
+                restmp['sums_cov'][0,:,:] = 0.0
+
+                v,u=jacob.get_vu(row,col)
+                wt.set_cen(v,u)
+                # this keeps *running sums*
+                get_weighted_sums(wtdata, obs.pixels, restmp)
+
+                Fvar = restmp['sums_cov'][0,5,5]
+                if Fvar > 0.0:
+                    fs2n = restmp['sums'][0,5]/sqrt(Fvar)
+                    if fs2n > s2n_min:
+                        res['wsum'][0] += restmp['wsum'][0]
+                        res['sums'][0] += restmp['sums'][0]
+                        res['sums_cov'][0] += restmp['sums_cov'][0]
+
+        return res[0]
+
     def get_model_s2n_sum(self, obs):
         """
         Get the s/n sum for the model, using only the weight
