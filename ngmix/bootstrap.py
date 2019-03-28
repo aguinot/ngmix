@@ -2428,6 +2428,7 @@ class MaxRunner(object):
                 self.obs,
                 self.model,
                 lm_pars=self.send_pars,
+                use_logT=True, # pass in as parameter
                 prior=self.prior,
             )
 

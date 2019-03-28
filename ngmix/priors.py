@@ -1954,8 +1954,8 @@ def _gprior1d_exp_scalar(A, a, g0sq, gmax, g, gsq, output):
 
 
 class FlatPrior(PriorBase):
-    def __init__(self, minval, maxval, rng=None):
-        PriorBase.__init__(self, rng=rng)
+    def __init__(self, minval, maxval, rng=None, bounds=None):
+        PriorBase.__init__(self, rng=rng, bounds=bounds)
 
         self.minval=minval
         self.maxval=maxval

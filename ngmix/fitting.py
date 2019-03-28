@@ -1640,6 +1640,8 @@ class LMSimple(FitterBase):
         # can contain maxfev, ftol (tol in sum of squares)
         # xtol (tol in solution), etc
 
+        self.use_logT=keys.get('use_logT',False)
+
         lm_pars=keys.get('lm_pars',None)
         if lm_pars is None:
             lm_pars=_default_lm_pars
@@ -1750,6 +1752,8 @@ class LMSimple(FitterBase):
         pars[0:5] = pars_in[0:5]
         pars[5] = pars_in[5+band]
 
+        #if self.use_logT:
+        #    pars[4] = 10.0**pars[4]-1
         return pars
 
     def get_T_s2n(self):
