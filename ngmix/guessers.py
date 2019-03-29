@@ -44,37 +44,35 @@ class TFluxGuesser(GuesserBase):
     """
     get full guesses from just T,fluxes
 
+    Either send T= or logT= (which is really log10(1+T))
+
     parameters
     ----------
     T: float
         Center for T guesses
+    logT: float
+        Center for log10(1+T) guesses
     fluxes: float or sequences
         Center for flux guesses
-    scaling: string
-        'linear' or 'log'
     prior: optional
         If sent, "fix-up" guesses if they are not allowed by the prior
+        This is opposed to TFluxAndPriiorGuesser which draws from
+        the prior for all parameters other than T and Flux
+
+        If logT= is sent, then the prior must also be for log10(1+T)
     """
-    def __init__(self, T, fluxes, prior=None, scaling='linear'):
+    def __init__(self, T=None, logT=None, fluxes=None, prior=None):
+
+        if T is None and logT is None:
+            raise ValueError('send T= or logT=')
+        if fluxes is None: 
+            raise ValueError('send fluxes=')
+
         self.T=T
+        self.logT=logT
 
-        if numpy.isscalar(fluxes):
-            fluxes=numpy.array(fluxes, dtype='f8', ndmin=1)
-
-        self.fluxes=fluxes
+        self.fluxes = numpy.array(fluxes, dtype='f8', ndmin=1)
         self.prior=prior
-        self.scaling=scaling
-
-        if T <= 0.0:
-            self.log_T = log(1.0e-10)
-        else:
-            self.log_T = log(T)
-
-        lfluxes = fluxes.copy()
-        w, = numpy.where(fluxes < 0.0)
-        if w.size > 0:
-            lfluxes[w[:]] = 1.0e-10
-        self.log_fluxes = log(lfluxes)
 
     def __call__(self, n=1, **keys):
         """
@@ -90,18 +88,14 @@ class TFluxGuesser(GuesserBase):
         guess[:,2] = 0.02*srandu(n)
         guess[:,3] = 0.02*srandu(n)
 
-        if self.scaling=='linear':
+        if self.T is not None:
             guess[:,4] = self.T*(1.0 + 0.1*srandu(n))
-
-            fluxes=self.fluxes
-            for band in xrange(nband):
-                guess[:,5+band] = fluxes[band]*(1.0 + 0.1*srandu(n))
-
         else:
-            guess[:,4] = self.log_T + 0.1*srandu(n)
+            guess[:,4] = self.logT + 0.03*srandu(n)
 
-            for band in xrange(nband):
-                guess[:,5+band] = self.log_fluxes[band] + 0.1*srandu(n)
+        fluxes=self.fluxes
+        for band in xrange(nband):
+            guess[:,5+band] = fluxes[band]*(1.0 + 0.1*srandu(n))
 
         if self.prior is not None:
             self._fix_guess(guess, self.prior)
@@ -114,35 +108,32 @@ class TFluxAndPriorGuesser(GuesserBase):
     """
     Make guesses from the input T, fluxes and prior
 
+    Either send T= or logT= (which is really log10(1+T))
+
     parameters
     ----------
     T: float
         Center for T guesses
+    logT: float
+        Center for log10(1+T) guesses
     fluxes: float or sequences
         Center for flux guesses
     prior:
         cen, g drawn from this prior
-    scaling: string
-        'linear' or 'log'
     """
-    def __init__(self, T, fluxes, prior, scaling='linear'):
-        fluxes=numpy.array(fluxes, dtype='f8', ndmin=1)
+    def __init__(self, T=None, logT=None, fluxes=None, prior=None):
+        if T is None and logT is None:
+            raise ValueError('send T= or logT=')
+        if fluxes is None: 
+            raise ValueError('send fluxes=')
+        if prior is None: 
+            raise ValueError('send prior=')
 
         self.T=T
-        self.fluxes=fluxes
+        self.logT=logT
+
+        self.fluxes=numpy.array(fluxes, dtype='f8', ndmin=1)
         self.prior=prior
-        self.scaling=scaling
-
-        if T <= 0.0:
-            self.log_T = log(1.0e-10)
-        else:
-            self.log_T = log(T)
-
-        lfluxes = self.fluxes.copy()
-        w, = numpy.where(self.fluxes < 0.0)
-        if w.size > 0:
-            lfluxes[w[:]] = 1.0e-10
-        self.log_fluxes = log(lfluxes)
 
     def __call__(self, n=1, **keys):
         """
@@ -154,16 +145,14 @@ class TFluxAndPriorGuesser(GuesserBase):
 
         guess = self.prior.sample(n)
 
-        if self.scaling=='linear':
+        if self.T is not None:
             guess[:,4] = self.T*(1.0 + 0.1*srandu(n))
         else:
-            guess[:,4] = self.log_T + 0.1*srandu(n)
+            guess[:,4] = self.logT + 0.03*srandu(n)
 
+        fluxes=self.fluxes
         for band in xrange(nband):
-            if self.scaling=='linear':
-                guess[:,5+band] = fluxes[band]*(1.0 + 0.1*srandu(n))
-            else:
-                guess[:,5+band] = self.log_fluxes[band] + 0.1*srandu(n)
+            guess[:,5+band] = fluxes[band]*(1.0 + 0.1*srandu(n))
 
         self._fix_guess(guess, self.prior)
 
