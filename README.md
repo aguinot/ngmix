@@ -24,20 +24,23 @@ optional dependencies
 
 installation
 ------------
+
+With conda
+```bash
+conda install ngmix
+```
+For the above to work you may need to add the conda-forge channel
+```bash
+conda config --add channels conda-forge
+```
+
+From source
 ```bash
 python setup.py install
 ```
+If installing from source, you will need to also install numba.
+By far the easiest way is using conda
 
-installing numba
-----------------
 ```bash
-# by far the easiest way is using anaconda.
 conda install numba
 ```
-
-TODO
-----
-Make numba optional.  There are many useful data structures
-in ngmix that do not require numba, it would be nice to make them
-available without the numba dependency.  To implement this would
-be straightforward:  wrap some of the imports in try/except blocks

@@ -1,8 +1,3 @@
-try:
-    xrange
-except NameError:
-    xrange=range
-
 import numpy
 from numpy import array, nan
 from numba import njit
@@ -20,7 +15,7 @@ def gmix_eval_pixel_fast(gmix, pixel, max_chi2=25.0):
     fast exponential
     """
     model_val=0.0
-    for igauss in xrange(gmix.size):
+    for igauss in range(gmix.size):
 
         model_val += gauss2d_eval_pixel_fast(
             gmix[igauss],
@@ -91,7 +86,7 @@ def gmix_eval_pixel(gmix, pixel):
     evaluate a single gaussian mixture
     """
     model_val=0.0
-    for igauss in xrange(gmix.size):
+    for igauss in range(gmix.size):
 
         model_val += gauss2d_eval_pixel(
             gmix[igauss],
@@ -113,7 +108,7 @@ def gmix_get_cen(gmix):
     psum=0.0
 
     n_gauss=gmix.size
-    for i in xrange(n_gauss):
+    for i in range(n_gauss):
         gauss=gmix[i]
 
         p = gauss['p']
@@ -143,7 +138,7 @@ def gmix_get_e1e2T(gmix):
     irc_sum=0.0
     icc_sum=0.0
 
-    for i in xrange(n_gauss):
+    for i in range(n_gauss):
         gauss = gmix[i]
 
         p = gauss['p']
@@ -314,7 +309,7 @@ def gmix_fill_simple(gmix, pars, fvals, pvals):
     e1, e2 = g1g2_to_e1e2(g1, g2)
 
     n_gauss=gmix.size
-    for i in xrange(n_gauss):
+    for i in range(n_gauss):
 
         gauss = gmix[i]
 
@@ -377,7 +372,7 @@ def gmix_fill_coellip(gmix, pars):
 
     n_gauss=gmix.size
 
-    for i in xrange(n_gauss):
+    for i in range(n_gauss):
         T = pars[4+i]
         Thalf=0.5*T
         flux=pars[4+n_gauss+i]
@@ -401,7 +396,7 @@ def gmix_fill_full(gmix, pars):
     """
 
     n_gauss=gmix.size
-    for i in xrange(n_gauss):
+    for i in range(n_gauss):
         beg=i*6
 
         gauss2d_set(
@@ -433,7 +428,7 @@ def gmix_fill_cm(gmix, fracdev, TdByTe, Tfactor, pars):
 
     e1, e2 = g1g2_to_e1e2(g1, g2)
 
-    for i in xrange(16):
+    for i in range(16):
         if i < 6:
             p = _pvals_exp[i] * ifracdev
             f = _fvals_exp[i]
@@ -478,7 +473,7 @@ def gmix_fill_bd(gmix, pars):
 
     e1, e2 = g1g2_to_e1e2(g1, g2)
 
-    for i in xrange(16):
+    for i in range(16):
         if i < 6:
             p = _pvals_exp[i] * ifracdev
             f = _fvals_exp[i]
@@ -523,7 +518,7 @@ def gmix_fill_bdf(gmix, pars, TdByTe):
 
     e1, e2 = g1g2_to_e1e2(g1, g2)
 
-    for i in xrange(16):
+    for i in range(16):
         if i < 6:
             p = _pvals_exp[i] * ifracdev
             f = _fvals_exp[i]
@@ -563,13 +558,13 @@ def get_cm_Tfactor(fracdev, TdByTe):
 
     Tfactor = 0.0
 
-    for i in xrange(6):
+    for i in range(6):
         p = _pvals_exp[i] * ifracdev
         f = _fvals_exp[i]
 
         Tfactor += p*f
 
-    for i in xrange(10):
+    for i in range(10):
         p = _pvals_dev[i] * fracdev
         f = _fvals_dev[i] * TdByTe
 
@@ -614,10 +609,10 @@ def gmix_convolve_fill(self, gmix, psf):
     psf_n_gauss = psf.size
 
     itot=0
-    for iobj in xrange(n_gauss):
+    for iobj in range(n_gauss):
         obj_gauss = gmix[iobj]
 
-        for ipsf in xrange(psf_n_gauss):
+        for ipsf in range(psf_n_gauss):
             psf_gauss=psf[ipsf]
 
             p = obj_gauss['p']*psf_gauss['p']*psf_ipsum
@@ -677,7 +672,7 @@ def get_weighted_sums(wt, pixels, res, maxrad):
     F = res['F']
 
     n_pixels = pixels.size
-    for i_pixel in xrange(n_pixels):
+    for i_pixel in range(n_pixels):
 
         pixel = pixels[i_pixel]
 
@@ -704,9 +699,9 @@ def get_weighted_sums(wt, pixels, res, maxrad):
             res['wsum'] += weight
             res['npix'] += 1
 
-            for i in xrange(6):
+            for i in range(6):
                 res['sums'][i] += wdata*F[i]
-                for j in xrange(6):
+                for j in range(6):
                     res['sums_cov'][i,j] += w2*var*F[i]*F[j]
 
 

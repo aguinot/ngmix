@@ -1,8 +1,8 @@
-from __future__ import print_function, absolute_import, division
 import unittest
 import numpy as np
 
 from . import joint_prior
+from . import priors
 from . import gmix
 from .jacobian import UnitJacobian
 from . import bootstrap
@@ -124,13 +124,11 @@ class TestFitting(unittest.TestCase):
             pars[4] *= (1.0 + rng.uniform(low=-0.1,high=0.1))
             pars[5] *= (1.0 + rng.uniform(low=-0.1,high=0.1))
 
+            prior=self._get_prior()
+
             max_pars={'method':'lm',
                       'lm_pars':{'maxfev':4000}}
 
-            prior=joint_prior.make_uniform_simple_sep([0.0,0.0],     # cen
-                                                      [0.1,0.1],     # g
-                                                      [-10.0,3500.], # T
-                                                      [-0.97,1.0e9]) # flux
 
             boot=bootstrap.Bootstrapper(obs)
             boot.fit_psfs('gauss', 4.0)
@@ -167,10 +165,7 @@ class TestFitting(unittest.TestCase):
             max_pars={'method':'lm',
                       'lm_pars':{'maxfev':4000}}
 
-            prior=joint_prior.make_uniform_simple_sep([0.0,0.0],     # cen
-                                                      [0.1,0.1],     # g
-                                                      [-10.0,3500.], # T
-                                                      [-0.97,1.0e9]) # flux
+            prior=self._get_prior()
 
             boot=bootstrap.Bootstrapper(obs)
             boot.fit_psfs('gauss', 4.0)
@@ -181,6 +176,19 @@ class TestFitting(unittest.TestCase):
             print_pars(res['pars'],     front='pars meas: ')
             print_pars(res['pars_err'], front='pars err:  ')
             print('s2n:',res['s2n_w'])
+
+    def _get_prior(self):
+            cen_prior=priors.CenPrior(0.0, 0.0, 0.1, 0.1)
+            g_prior=priors.ZDisk2D(1.0)
+            T_prior=priors.FlatPrior(-10.0, 3500.0)
+            F_prior=priors.FlatPrior(-0.97, 1.0e9)
+
+            return joint_prior.PriorSimpleSep(
+                cen_prior,
+                g_prior,
+                T_prior,
+                F_prior,
+            )
 
 
     def testEM(self):

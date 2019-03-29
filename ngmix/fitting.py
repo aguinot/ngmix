@@ -2,12 +2,6 @@
 - todo
     - remove old unused fitters
 """
-from __future__ import print_function, absolute_import, division
-
-try:
-    xrange
-except NameError:
-    xrange=range
 
 from sys import stdout
 import numpy
@@ -243,7 +237,7 @@ class FitterBase(object):
 
 
             self._fill_gmix_all(pars)
-            for band in xrange(self.nband):
+            for band in range(self.nband):
 
                 obs_list=self.obs[band]
                 gmix_list=self._gmix_all[band]
@@ -426,7 +420,7 @@ class FitterBase(object):
             return None
 
         plist=[]
-        for band in xrange(self.nband):
+        for band in range(self.nband):
 
             band_list=[]
 
@@ -439,7 +433,7 @@ class FitterBase(object):
             if title is not None:
                 ttitle='%s %s' % (title, ttitle)
 
-            for i in xrange(nim):
+            for i in range(nim):
 
                 this_title = '%s cutout: %d' % (ttitle, i+1)
 
@@ -659,7 +653,7 @@ class TemplateFluxFitter(FitterBase):
         flux_err=CDEF
 
         for ipass in [1,2]:
-            for iobs in xrange(nobs):
+            for iobs in range(nobs):
                 obs  = self.obs[iobs]
 
                 im=obs.image
@@ -1041,7 +1035,7 @@ class FracdevFitterMax(FitterBase):
 
         start=0
 
-        for band in xrange(self.nband):
+        for band in range(self.nband):
 
             obs_list=self.obs[band]
 
@@ -1093,7 +1087,7 @@ class FracdevFitterMax(FitterBase):
 
         lnprob = 0.0
 
-        for band in xrange(self.nband):
+        for band in range(self.nband):
 
             obs_list=self.obs[band]
 
@@ -1202,7 +1196,7 @@ class FracdevFitterMax(FitterBase):
         all_eimages=[]
         all_dimages=[]
 
-        for band in xrange(nb):
+        for band in range(nb):
             # these will get reset later based on fracdev
             tepars[5] = exp_pars[5+band]
             tdpars[5] = dev_pars[5+band]
@@ -1216,7 +1210,7 @@ class FracdevFitterMax(FitterBase):
             eimages=[]
             dimages=[]
 
-            for iepoch in xrange(nepoch):
+            for iepoch in range(nepoch):
                 epoch_obs = band_obs[iepoch]
 
                 image=epoch_obs.image.copy()
@@ -1370,7 +1364,7 @@ class FracdevFitter(FitterBase):
         tdpars[0:5] = dev_pars[0:5]
 
         start=0
-        for band in xrange(nb):
+        for band in range(nb):
             # these will get reset later based on fracdev
             tepars[5] = exp_pars[5+band]
             tdpars[5] = dev_pars[5+band]
@@ -1378,7 +1372,7 @@ class FracdevFitter(FitterBase):
             band_obs = self.obs[band]
             nepoch = len(band_obs)
 
-            for iepoch in xrange(nepoch):
+            for iepoch in range(nepoch):
                 epoch_obs = band_obs[iepoch]
 
                 image=epoch_obs.image.copy()
@@ -1775,7 +1769,7 @@ class LMSimple(FitterBase):
         pixels_list      = []
         gmix_data_list   = []
 
-        for band in xrange(self.nband):
+        for band in range(self.nband):
 
             obs_list=self.obs[band]
             gmix_list=self._gmix_all[band]
@@ -2379,7 +2373,7 @@ class MCMCBase(FitterBase):
 
         ok=False
         gerror=None
-        for i in xrange(self.nwalkers):
+        for i in range(self.nwalkers):
             try:
                 self._init_gmix_all(pos[i,:])
                 ok=True
@@ -2547,7 +2541,7 @@ class MCMCSimple(MCMCBase):
         if self.nband == 1:
             names += ['F']
         else:
-            for band in xrange(self.nband):
+            for band in range(self.nband):
                 names += ['F_%s' % band]
 
         return names
@@ -2675,7 +2669,7 @@ class MH(object):
 
         self._init_data(pars_start, nstep)
 
-        for i in xrange(1,nstep):
+        for i in range(1,nstep):
             self._step()
 
         self._arate=self._accepted.sum()/float(self._accepted.size)
@@ -3134,8 +3128,8 @@ class ISampler(object):
                 1.0 + self._pars_orig[ind]*self._pars_orig[ind]
             )
 
-        for i in xrange(self._npars):
-            for j in xrange(self._npars):
+        for i in range(self._npars):
+            for j in range(self._npars):
                 self._cov[i,j] = jac[i]*jac[j]*self._cov_orig[i,j]
 
         self._cov = self._cov*self._ifac*self._ifac
@@ -3268,7 +3262,7 @@ class ISampler(object):
         samples = self._trials_orig
         nsample = samples.shape[0]
         lnprob = zeros(nsample)
-        for i in xrange(nsample):
+        for i in range(nsample):
             lnprob[i] = lnprob_func(samples[i,:])
 
         lnpdiff = lnprob - proposed_lnprob - lndetjac
@@ -3390,8 +3384,8 @@ class ISampler(object):
         # correlation matrix
         dsigma = sqrt(diag(cov))
         corr = cov.copy()
-        for i in xrange(cov.shape[0]):
-            for j in xrange(cov.shape[1]):
+        for i in range(cov.shape[0]):
+            for j in range(cov.shape[1]):
                 corr[i,j] /= dsigma[i]
                 corr[i,j] /= dsigma[j]
 
@@ -3403,8 +3397,8 @@ class ISampler(object):
             dsigma[w] = self._max_err[w]
 
         # remake the covariance matrix
-        for i in xrange(corr.shape[0]):
-            for j in xrange(corr.shape[1]):
+        for i in range(corr.shape[0]):
+            for j in range(corr.shape[1]):
                 corr[i,j] *= dsigma[i]
                 corr[i,j] *= dsigma[j]
 

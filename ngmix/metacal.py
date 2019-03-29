@@ -1,15 +1,6 @@
 """
-class to create manipulated images for use in metacalibration
-
-Originally based off reading through Eric Huffs code; it has departed
-significantly.
+Code to create manipulated images for use in metacalibration
 """
-from __future__ import print_function, absolute_import, division
-
-try:
-    xrange
-except NameError:
-    xrange=range
 
 import copy
 import numpy
@@ -237,7 +228,7 @@ def _get_all_metacal_fixnoise(obs, step=0.01, **kw):
             _doadd_single_obs(imbobs, nmbobs)
 
         elif isinstance(imbobs,ObsList):
-            for iobs in xrange(len(imbobs)):
+            for iobs in range(len(imbobs)):
 
                 obs  = imbobs[iobs]
                 nobs = nmbobs[iobs]
@@ -245,11 +236,11 @@ def _get_all_metacal_fixnoise(obs, step=0.01, **kw):
                 _doadd_single_obs(obs, nobs)
 
         elif isinstance(imbobs,MultiBandObsList):
-            for imb in xrange(len(imbobs)):
+            for imb in range(len(imbobs)):
                 iolist=imbobs[imb]
                 nolist=nmbobs[imb]
 
-                for iobs in xrange(len(iolist)):
+                for iobs in range(len(iolist)):
 
                     obs  = iolist[iobs]
                     nobs = nolist[iobs]
@@ -1493,7 +1484,7 @@ def jackknife_shear(data, chunksize=1, dgamma=0.02):
     shear = g_sum/R_sum
 
     shears = zeros( (nchunks, 2) )
-    for i in xrange(nchunks):
+    for i in range(nchunks):
 
         beg = i*chunksize
         end = (i+1)*chunksize

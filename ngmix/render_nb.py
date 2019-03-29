@@ -5,11 +5,6 @@ from .gmix_nb import (
     gmix_set_norms,
 )
 
-try:
-    xrange
-except NameError:
-    xrange=range
-
 @njit
 def render(gmix, coords, image, fast_exp=0, max_chi2=300.0):
     """
@@ -36,12 +31,12 @@ def render(gmix, coords, image, fast_exp=0, max_chi2=300.0):
     n_coords = coords.shape[0]
 
     if fast_exp:
-        for icoord in xrange(n_coords):
+        for icoord in range(n_coords):
             image[icoord] += gmix_eval_pixel_fast(
                 gmix,
                 coords[icoord],
                 max_chi2=max_chi2,
             )
     else:
-        for icoord in xrange(n_coords):
+        for icoord in range(n_coords):
             image[icoord] += gmix_eval_pixel(gmix, coords[icoord])
