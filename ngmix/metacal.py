@@ -116,22 +116,26 @@ def _get_all_metacal(obs, step=0.01, **kw):
     """
     if isinstance(obs, Observation):
 
-        psf=kw.get('psf',None)
-        if psf is not None:
-
-            if psf=='gauss':
-                # we default to only shear terms, not psf shear terms
-                kw['types']=kw.get('types',METACAL_MINIMAL_TYPES)
-                m=MetacalGaussPSF(obs, **kw)
-            elif psf=='fitgauss':
-                # we default to only shear terms, not psf shear terms
-                kw['types']=kw.get('types',METACAL_MINIMAL_TYPES)
-                m=MetacalFitGaussPSF(obs, **kw)
-            else:
-                psf = kw.pop('psf')
-                m=MetacalAnalyticPSF(obs, psf, **kw)
+        if kw.get('nopsf',False):
+            m = MetacalNoPSF(obs, **kw)
         else:
-            m=Metacal(obs, **kw)
+
+            psf=kw.get('psf',None)
+            if psf is not None:
+
+                if psf=='gauss':
+                    # we default to only shear terms, not psf shear terms
+                    kw['types']=kw.get('types',METACAL_MINIMAL_TYPES)
+                    m=MetacalGaussPSF(obs, **kw)
+                elif psf=='fitgauss':
+                    # we default to only shear terms, not psf shear terms
+                    kw['types']=kw.get('types',METACAL_MINIMAL_TYPES)
+                    m=MetacalFitGaussPSF(obs, **kw)
+                else:
+                    psf = kw.pop('psf')
+                    m=MetacalAnalyticPSF(obs, psf, **kw)
+            else:
+                m=Metacal(obs, **kw)
 
         odict=m.get_all(step, **kw)
     elif isinstance(obs, MultiBandObsList):
@@ -886,6 +890,158 @@ def _compare_psfs(orig, gpsf):
     if 'q'==input('hit a key: '):
         stop
 '''
+
+class MetacalNoPSF(Metacal):
+    """
+    no psf and no pixel
+    """
+    def get_target_image(self, shear=None):
+        """
+        get the target image, convolved with the specified psf
+        and possibly sheared
+
+        parameters
+        ----------
+        shear: ngmix.Shape, optional
+            The shear to apply
+
+        returns
+        -------
+        galsim image object
+        """
+
+        imconv = self._get_target_gal_obj(shear=shear)
+
+        ny,nx=self.image.array.shape
+
+        try:
+            newim=imconv.drawImage(
+                nx=nx,
+                ny=ny,
+                #scale=0.263,
+                wcs=self.image.wcs,
+                dtype=numpy.float64,
+                method='no_pixel',
+            )
+        except RuntimeError as err:
+            # argh, galsim uses generic exceptions
+            raise GMixRangeError("galsim error: '%s'" % str(err))
+
+
+        return newim
+
+    def _get_target_gal_obj(self, shear=None):
+        if shear is not None:
+            oim = self.get_sheared_image(shear)
+        else:
+            oim = self.image_int
+
+        return oim
+
+
+    def get_sheared_image(self, shear):
+        """
+        get the image sheared by the reqested amount
+
+        parameters
+        ----------
+        shear: ngmix.Shape
+            The shear to apply
+
+        returns
+        -------
+        galsim image object
+        """
+        _check_shape(shear)
+        sheared_image = self.image_int.shear(g1=shear.g1, g2=shear.g2)
+        return sheared_image
+
+
+    def get_obs_galshear(self, shear, get_unsheared=False):
+        """
+        This is the case where we shear the image, for calculating R
+
+        parameters
+        ----------
+        shear: ngmix.Shape
+            The shear to apply
+
+        get_unsheared: bool
+            Get an observation without shear
+        """
+
+        type='gal_shear'
+
+        sheared_image = self.get_target_image(shear=shear)
+
+        newobs = self._make_obs(sheared_image)
+
+        if get_unsheared:
+            unsheared_image = self.get_target_image(shear=None)
+
+            uobs = self._make_obs(unsheared_image)
+
+            return newobs, uobs
+        else:
+            return newobs
+
+
+    def _make_obs(self, im):
+        """
+        Make new Observation objects for the image and psf.
+        Copy out the weight maps and jacobians from the original
+        Observation.
+
+        parameters
+        ----------
+        im: Galsim Image
+        psf_im: Galsim Image
+
+        returns
+        -------
+        A new Observation
+        """
+
+        obs=self.obs
+
+        meta={}
+        meta.update(obs.meta)
+        newobs=Observation(im.array,
+                           jacobian=obs.jacobian.copy(),
+                           weight=obs.weight.copy(),
+                           psf=obs.psf,
+                           meta=meta)
+
+        if obs.has_bmask():
+            newobs.bmask = obs.bmask
+
+        return newobs
+
+    def _setup(self, **kw):
+        """
+        set up the Galsim objects, Galsim version of Jacobian/wcs, and
+        the interpolation
+        """
+
+        self._set_interp()
+
+    def _set_data(self):
+        """
+        create galsim objects based on the input observation
+        """
+
+        obs=self.obs
+
+        # these would share data with the original numpy arrays, make copies
+        # to be sure they don't get modified
+        #
+        self.image = galsim.Image(obs.image.copy(),
+                                  wcs=self.get_wcs())
+
+        self.image_int = galsim.InterpolatedImage(self.image,
+                                                  x_interpolant=self.interp)
+
+
 
 class MetacalGaussPSF(Metacal):
     def __init__(self, *args, **kw):
