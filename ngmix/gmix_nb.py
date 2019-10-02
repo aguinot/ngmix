@@ -13,6 +13,44 @@ from .gexceptions import GMixRangeError
 
 GMIX_LOW_DETVAL=1.0e-200
 
+
+def make_exp_lookup(minval=-100, maxval=100, dtype='f8'):
+    """
+    lookup array in range [minval,0] inclusive
+    """
+    nlook = abs(maxval-minval)+1
+    expvals=numpy.zeros(nlook, dtype=dtype)
+
+    ivals = numpy.arange(minval,maxval+1,dtype='i4')
+
+    expvals[:] = numpy.exp(ivals)
+
+    return ivals, expvals
+
+
+_exp3_ivals, _exp3_lookup = make_exp_lookup(
+    minval=-300,
+    maxval=0,
+)
+_exp3_i0 = _exp3_ivals[0]
+
+
+@njit
+def exp3(x):
+    """
+    fast exponential
+    no range checking is done here, do it at the caller
+    x: number
+        any number
+    """
+    ival = int(x-0.5)
+    f = x - ival
+    index = ival-_exp3_i0
+    expval = _exp3_lookup[index]
+    expval *= (6+f*(6+f*(3+f)))*0.16666666
+
+    return expval
+
 @njit
 def gmix_eval_pixel_fast(gmix, pixel, max_chi2=25.0):
     """
@@ -55,7 +93,7 @@ def gauss2d_eval_pixel_fast(gauss, pixel, max_chi2=25.0):
             - 2.0*gauss['drc']*vdiff*udiff )
 
     if chi2 < max_chi2 and chi2 >= 0.0:
-        model_val = gauss['pnorm']*expd( -0.5*chi2 )
+        model_val = gauss['pnorm']*exp3( -0.5*chi2 )
 
     return model_val
 
