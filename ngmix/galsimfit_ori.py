@@ -10,7 +10,6 @@ except NameError:
     xrange=range
 
 import numpy
-from numpy import sqrt, diag
 
 from .fitting import (
     LMSimple,
@@ -148,15 +147,11 @@ class GalsimSimple(LMSimple):
         Run leastsq and set the result
         """
 
-        # guess=self._get_guess(guess)
-        guess=numpy.array(guess,dtype='f8',copy=False)
-
-        bounds = self._get_bounds()
+        guess=self._get_guess(guess)
 
         result = run_leastsq(self._calc_fdiff,
                              guess,
                              self.n_prior_pars,
-                             bounds=bounds,
                              k_space=True,
                              **self.lm_pars)
 
@@ -164,25 +159,10 @@ class GalsimSimple(LMSimple):
         if result['flags']==0:
             result['g'] = result['pars'][2:2+2].copy()
             result['g_cov'] = result['pars_cov'][2:2+2, 2:2+2].copy()
-            self._set_flux(result)
-            self._set_T(result)
             stat_dict=self.get_fit_stats(result['pars'])
             result.update(stat_dict)
 
         self._result=result
-
-    def _set_T(self, res):
-        res['T'] = res['pars'][4]
-        res['T_err'] = sqrt(res['pars_cov'][4,4])
-
-    def _set_flux(self, res):
-        if self.nband==1:
-            res['flux'] = res['pars'][5]
-            res['flux_err'] = sqrt(res['pars_cov'][5,5])
-        else:
-            res['flux'] = res['pars'][5:]
-            res['flux_cov'] = res['pars_cov'][5:, 5:]
-            res['flux_err'] = sqrt(diag(res['flux_cov']))
 
     def _calc_fdiff(self, pars):
         """
@@ -302,11 +282,6 @@ class GalsimSimple(LMSimple):
                 half_light_radius=r50,
                 flux=flux,
             )
-        # try:
-        #     model = self._model_class(
-        #         sigma=sqrt(r50/2.),
-        #         flux=flux,
-        #     )
         except RuntimeError as err:
             raise GMixRangeError(str(err))
 

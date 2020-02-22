@@ -31,8 +31,6 @@ from .gexceptions import GMixRangeError, BootPSFFailure, BootGalFailure
 from . import roundify
 from . import metacal
 
-from .galsimfit import GalsimRunner
-
 from copy import deepcopy
 
 try:
@@ -632,30 +630,6 @@ class Bootstrapper(object):
                                                   ntry=ntry,
                                                   guess_widths=guess_widths)
 
-    def fit_galsim_max(self,
-                gal_model,
-                pars,
-                guess=None,
-                guess_widths=None,
-                guesser=None,
-                prior=None,
-                extra_priors=None,
-                ntry=1):
-        """
-        fit the galaxy.  You must run fit_psf() successfully first
-
-        extra_priors is ignored here but used in composite
-        """
-
-        self.max_fitter = self._fit_one_model_galsim_max(gal_model,
-                                                         pars,
-                                                         guess=guess,
-                                                         guesser=guesser,
-                                                         prior=prior,
-                                                         ntry=ntry,
-                                                         guess_widths=guess_widths)
-
-
     def fit_max_fixT(self, gal_model, pars, T,
                      guess=None, prior=None, extra_priors=None, ntry=1):
         """
@@ -773,49 +747,6 @@ class Bootstrapper(object):
 
         return fitter
 
-
-    def _fit_one_model_galsim_max(self,
-                                  gal_model,
-                                  pars,
-                                  guess=None,
-                                  guess_widths=None,
-                                  guesser=None,
-                                  prior=None,
-                                  ntry=1,
-                                  obs=None):
-        """
-        fit the galaxy.  You must run fit_psf() successfully first
-        """
-
-        if obs is None:
-            obs = self.mb_obs_list
-
-        if not hasattr(self,'psf_flux_res'):
-            self.fit_gal_psf_flux()
-
-        if guesser is None:
-            guesser=self._get_max_guesser(
-                guess=guess,
-                prior=prior,
-                widths=guess_widths,
-            )
-        
-        runner=GalsimRunner(
-                obs, gal_model, guesser, 
-                lm_pars = pars['lm_pars'],
-                prior=prior,
-                )
-
-        runner.go(ntry=ntry)
-
-        fitter=runner.fitter
-
-        res=fitter.get_result()
-
-        if res['flags'] != 0:
-            raise BootGalFailure("failed to fit galaxy with maxlike")
-
-        return fitter
 
 
     def isample(self, ipars, prior=None):
@@ -1484,7 +1415,6 @@ class MaxMetacalBootstrapper(Bootstrapper):
                     psf_ntry=5,
                     ntry=1,
                     guesser=None,
-                    use_galsim=False,
                     **kw):
         """
         run metacalibration
@@ -1525,7 +1455,6 @@ class MaxMetacalBootstrapper(Bootstrapper):
             prior, psf_ntry, ntry,
             psf_fit_pars,
             guesser=guesser,
-            use_galsim=use_galsim,
         )
 
         self.metacal_res = res
@@ -1548,7 +1477,7 @@ class MaxMetacalBootstrapper(Bootstrapper):
 
     def _do_metacal_max_fits(self, obs_dict, psf_model, gal_model, pars,
                              psf_Tguess, prior, psf_ntry, ntry,
-                             psf_fit_pars, guesser=None, use_galsim=False):
+                             psf_fit_pars, guesser=None):
 
         # overall flags, or'ed from each bootstrapper
         res={'mcal_flags':0}
@@ -1568,23 +1497,13 @@ class MaxMetacalBootstrapper(Bootstrapper):
             boot.fit_psfs(psf_model, psf_Tguess, ntry=psf_ntry,
                           fit_pars=psf_fit_pars,
                           skip_already_done=False)
-
-            if use_galsim:
-                boot.fit_galsim_max(
-                    gal_model,
-                    pars,
-                    guesser=guesser,
-                    prior=prior,
-                    ntry=ntry,
-                )
-            else:
-                boot.fit_max(
-                    gal_model,
-                    pars,
-                    guesser=guesser,
-                    prior=prior,
-                    ntry=ntry,
-                )
+            boot.fit_max(
+                gal_model,
+                pars,
+                guesser=guesser,
+                prior=prior,
+                ntry=ntry,
+            )
             boot.set_round_s2n()
 
             tres=boot.get_max_fitter().get_result()
