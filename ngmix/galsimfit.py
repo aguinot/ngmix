@@ -148,8 +148,8 @@ class GalsimSimple(LMSimple):
         Run leastsq and set the result
         """
 
-        # guess=self._get_guess(guess)
-        guess=numpy.array(guess,dtype='f8',copy=False)
+        guess=self._get_guess(guess)
+        # guess=numpy.array(guess,dtype='f8',copy=False)
 
         bounds = self._get_bounds()
 
