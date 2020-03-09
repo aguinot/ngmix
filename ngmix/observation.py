@@ -1137,6 +1137,7 @@ def make_iilist(obs, **kw):
 
             if obs.has_psf():
                 psf_weight = obs.psf.weight
+                psf_meta = obs.psf.meta
 
                 # normalized
                 psf_gsimage = galsim.Image(
@@ -1170,6 +1171,7 @@ def make_iilist(obs, **kw):
                     )
                 psf_ii = None
                 psf_weight = None
+                psf_meta = None
 
             if gsvers == 1:
                 dk = ii.stepK()
@@ -1187,7 +1189,7 @@ def make_iilist(obs, **kw):
                 'meta': obs.meta,
                 'psf_ii': psf_ii,
                 'psf_weight': psf_weight,
-                'psf_meta': obs.psf.meta,
+                'psf_meta': psf_meta,
                 'realspace_gsimage': gsimage,
             })
 
