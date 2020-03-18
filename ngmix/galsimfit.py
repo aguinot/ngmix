@@ -12,6 +12,8 @@ except NameError:
 import numpy
 from numpy import sqrt, diag
 
+import galsim
+
 from .fitting import (
     LMSimple,
     TemplateFluxFitter,
@@ -132,6 +134,7 @@ class GalsimSimple(LMSimple):
         self.model_name=model
         self._set_model_class()
 
+        self._set_obs(obs)
         self._set_kobs(obs)
         self._init_model_images()
 
@@ -376,6 +379,21 @@ class GalsimSimple(LMSimple):
         self.mb_kobs = kobs
         self.nband=len(kobs)
 
+    def _set_obs(self, obs_in):
+        """
+        Input should be an Observation, ObsList, or MultiBandObsList
+        """
+
+        self.obs = get_mb_obs(obs_in)
+
+
+        self.nband=len(self.obs)
+        nimage = 0
+        for obslist in self.obs:
+            for obs in obslist:
+                nimage += 1
+        self.nimage=nimage
+
     def _set_prior(self, **keys):
         self.prior = keys.get('prior',None)
         if self.prior is None:
@@ -473,6 +491,47 @@ class GalsimSimple(LMSimple):
         res['s2n_r'] = self.calc_s2n_r(pars)
         return res
 
+    # def calc_s2n_r(self, pars):
+    #     """
+    #     we already have the round r50, so just create the
+    #     models and don't shear them
+    #     """
+
+    #     s2n_sum=0.0
+    #     for band,kobs_list in enumerate(self.mb_kobs):
+    #         # pars for this band, in linear space
+    #         band_pars=self.get_band_pars(pars, band)
+
+    #         for i,kobs in enumerate(kobs_list):
+    #             meta=kobs.meta
+    #             weight=kobs.weight
+
+    #             round_pars=band_pars.copy()
+    #             round_pars[2:2+2] = 0.0
+    #             gal = self.make_model(round_pars)
+
+    #             kmodel=meta['kmodel']
+
+    #             gal.drawKImage(image=kmodel)
+
+    #             if kobs.has_psf():
+    #                 kmodel *= kobs.psf.kimage
+    #             kmodel.real.array[:,:] *= kmodel.real.array[:,:]
+    #             kmodel.imag.array[:,:] *= kmodel.imag.array[:,:]
+
+    #             kmodel.real.array[:,:] *= weight.array[:,:]
+    #             kmodel.imag.array[:,:] *= weight.array[:,:]
+
+    #             s2n_sum += kmodel.real.array.sum()
+    #             s2n_sum += kmodel.imag.array.sum()
+
+    #     if s2n_sum > 0.0:
+    #         s2n = numpy.sqrt(s2n_sum)
+    #     else:
+    #         s2n = 0.0
+
+    #     return s2n
+
     def calc_s2n_r(self, pars):
         """
         we already have the round r50, so just create the
@@ -480,32 +539,37 @@ class GalsimSimple(LMSimple):
         """
 
         s2n_sum=0.0
-        for band,kobs_list in enumerate(self.mb_kobs):
+        for band,obs_list in enumerate(self.obs):
             # pars for this band, in linear space
             band_pars=self.get_band_pars(pars, band)
 
-            for i,kobs in enumerate(kobs_list):
-                meta=kobs.meta
-                weight=kobs.weight
+            for i,obs in enumerate(obs_list):
+                meta = obs.meta
+                weight=obs.weight
 
                 round_pars=band_pars.copy()
                 round_pars[2:2+2] = 0.0
                 gal = self.make_model(round_pars)
 
-                kmodel=meta['kmodel']
+                if obs.has_psf():
 
-                gal.drawKImage(image=kmodel)
+                    model=meta['realspace_gsimage']
+                    model.wcs = galsim.JacobianWCS(1., 0., 0., 1.)
+                    gal.drawImage(image=model)
+                    model_interp = galsim.InterpolatedImage(model)
 
-                if kobs.has_psf():
-                    kmodel *= kobs.psf.kimage
-                kmodel.real.array[:,:] *= kmodel.real.array[:,:]
-                kmodel.imag.array[:,:] *= kmodel.imag.array[:,:]
+                    psf_galsim_img = galsim.InterpolatedImage(galsim.Image(obs.psf.image, 
+                                        wcs=obs.psf.jacobian.get_galsim_wcs()))
+                    
+                    obj = galsim.Convolve((psf_galsim_img, model_interp))
 
-                kmodel.real.array[:,:] *= weight.array[:,:]
-                kmodel.imag.array[:,:] *= weight.array[:,:]
+                    obj.drawImage(model)
 
-                s2n_sum += kmodel.real.array.sum()
-                s2n_sum += kmodel.imag.array.sum()
+                model.array[:,:] *= model.array[:,:]
+
+                model.array[:,:] *= weight[:,:]
+
+                s2n_sum += model.array.sum()
 
         if s2n_sum > 0.0:
             s2n = numpy.sqrt(s2n_sum)
@@ -826,3 +890,31 @@ class GalsimTemplateFluxFitter(TemplateFluxFitter):
             raise ValueError("obs should be Observation or ObsList")
 
         self.obs=obs_list
+
+
+def get_mb_obs(obs_in):
+    """
+    convert the input to a MultiBandObsList
+    Input should be an Observation, ObsList, or MultiBandObsList
+    """
+
+    if isinstance(obs_in, Observation):
+        obs_list = ObsList()
+        obs_list.append(obs_in)
+
+        obs = MultiBandObsList()
+        obs.append(obs_list)
+
+    elif isinstance(obs_in, ObsList):
+        obs = MultiBandObsList()
+        obs.append(obs_in)
+
+    elif isinstance(obs_in, MultiBandObsList):
+        obs = obs_in
+
+    else:
+        raise ValueError(
+            'obs should be Observation, ObsList, or MultiBandObsList'
+        )
+
+    return obs
