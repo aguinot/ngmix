@@ -565,6 +565,10 @@ class GalsimSimple(LMSimple):
 
                     obj.drawImage(model)
 
+                else:
+                    model=meta['realspace_gsimage']
+                    gal.drawImage(model)
+
                 model.array[:,:] *= model.array[:,:]
 
                 model.array[:,:] *= weight[:,:]
