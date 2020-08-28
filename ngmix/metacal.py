@@ -90,6 +90,8 @@ def get_all_metacal(obs,
         simular for 1p_psf etc.
     """
 
+    print('MODIFF')
+
     if fixnoise:
         odict = _get_all_metacal_fixnoise(obs, step=step, **kw)
     else:
@@ -623,6 +625,9 @@ class Metacal(object):
         self.prepix = kw.get('prepix', False)
         self.symmetrize_psf = kw.get('symmetrize_psf', False)
 
+        # for weird PSF with large extension you might want to use it
+        self.symmetrize_tapering = kw.get('symmetrize_tapering', False)
+
         self.shear_pixelized_psf = kw.get('shear_pixelized_psf', False)
 
         obs = self.obs
@@ -674,6 +679,7 @@ class Metacal(object):
             self.obs.psf.image,
             self.get_psf_wcs(),
             self.interp,
+            self.symmetrize_tapering
         )
 
         psf_int_nopix = galsim.Convolve([sym_psf_int, self.pixel_inv])
@@ -1322,24 +1328,24 @@ def _do_dilate(obj, shear):
     return obj.dilate(dilation)
 
 
-def _make_symmetrized_gsimage_int(im_input, wcs, interp):
+def _make_symmetrized_gsimage_int(im_input, wcs, interp, tapering):
     """
     get the symmetrized galsim image and create an
     interpolated image from it
     """
-    gsim = _make_symmetrized_gsimage(im_input, wcs)
+    gsim = _make_symmetrized_gsimage(im_input, wcs, tapering)
     return galsim.InterpolatedImage(gsim, x_interpolant=interp)
 
 
-def _make_symmetrized_gsimage(im_input, wcs):
+def _make_symmetrized_gsimage(im_input, wcs, tapering):
     """
     wrap the symmetrized image int a galsim Image
     """
-    im = _make_symmetrized_image(im_input)
+    im = _make_symmetrized_image(im_input, tapering)
     return galsim.Image(im, wcs=wcs)
 
 
-def _make_symmetrized_image(im_input):
+def _make_symmetrized_image(im_input, tapering):
     """
     add a version of itself roated by 90,180,270 degrees
     """
@@ -1350,7 +1356,25 @@ def _make_symmetrized_image(im_input):
 
     im *= (1.0/4.0)
 
+    if tapering:
+        im = _make_tapering(im)
+
     return im
+
+
+def _make_tapering(psf_input, alpha=0.8):
+    """
+    """
+    
+    N = psf_input.shape[0]
+    tw = tukey_2d(N, alpha)
+
+    psf_fft = numpy.fft.fft2(psf_input)
+    psf_output = psf_fft * numpy.fft.fftshift(tw)
+    psf_output = numpy.fft.ifft2(psf_output).real
+    psf_output /= numpy.sum(psf_output)
+
+    return psf_output
 
 
 def _check_shape(shape):
@@ -1660,3 +1684,31 @@ def _add_noise_obs(obs, noise, noise_image):
     else:
         raise ValueError("obs must be Observation, ObsList, "
                          "or MultiBandObsList")
+
+
+def tukey_2d(shape, alpha): 
+    """
+    2d tukey function
+    """ 
+
+    def _tukey(x, y, cen, shape, alpha): 
+        r = numpy.sqrt((x-cen)**2. + (y-cen)**2.) 
+
+        al = alpha*(shape+1) 
+            
+        width = int(numpy.floor(alpha*(shape-1)//2.)) 
+
+        output = numpy.zeros((shape, shape)) 
+            
+        m1 = numpy.where((r < width)) 
+        m2 = numpy.where((r >= width) & (r <= (shape-1)//2)) 
+        m3 = numpy.where((r >= shape/2))
+
+        output[m1] = 1 
+        output[m2] = 0.5 * (1 - numpy.cos(numpy.pi*2.* ((shape-1)//2-r[m2])/alpha/(shape-width-1))) 
+        output[m3] = 0 
+        return output 
+
+    x,y = numpy.meshgrid(numpy.arange(shape), numpy.arange(shape)) 
+
+    return _tukey(x, y, (shape-1)//2., shape, alpha) 
