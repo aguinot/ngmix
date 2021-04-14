@@ -29,6 +29,9 @@ class GalsimFitModel(FitModel):
     """
 
     def __init__(self, obs, model, guess, prior=None):
+
+        self.mb_obs = observation.get_mb_obs(obs)
+
         self.model = model
         self['model'] = model
         self._set_model_class()
@@ -109,7 +112,7 @@ class GalsimFitModel(FitModel):
 
                 for i, kobs in enumerate(kobs_list):
 
-                    gal = self.make_model(band_pars)
+                    gal = self.make_model(band_pars, kobs.meta["jacob_shift"])
 
                     meta = kobs.meta
 
@@ -122,14 +125,14 @@ class GalsimFitModel(FitModel):
         except RuntimeError as err:
             raise GMixRangeError(str(err))
 
-    def make_model(self, pars):
+    def make_model(self, pars, jacob_shift):
         """
         make the galsim model
         """
 
         model = self.make_round_model(pars)
 
-        shift = pars[0:0+2]
+        shift = pars[0:0+2] + jacob_shift
         g1 = pars[2]
         g2 = pars[3]
 
@@ -174,6 +177,22 @@ class GalsimFitModel(FitModel):
             self._model_class = galsim.Gaussian
         else:
             raise NotImplementedError("can't fit '%s'" % self.model)
+
+    def _get_jacob_shift(self, band, epoch):
+        """
+        Get object shift from the jacobian
+        """
+        img_size = self.mb_obs[band][epoch].image.shape
+        jacob_cen = self.mb_obs[band][epoch].jacobian.get_cen()
+        pixel_scale = self.mb_obs[band][epoch].jacobian.scale
+
+        row_cen = (img_size[1]-1)/2.
+        col_cen = (img_size[0]-1)/2.
+
+        row_shift = (jacob_cen[0]-row_cen)*pixel_scale
+        col_shift = (jacob_cen[1]-col_cen)*pixel_scale
+
+        return np.array([row_shift, col_shift])
 
     def get_band_pars(self, pars_in, band):
         """
@@ -248,8 +267,8 @@ class GalsimFitModel(FitModel):
         these will get filled in
         """
 
-        for kobs_list in self.mb_kobs:
-            for kobs in kobs_list:
+        for band, kobs_list in enumerate(self.mb_kobs):
+            for i, kobs in enumerate(kobs_list):
                 meta = kobs.meta
 
                 weight = kobs.weight
@@ -262,6 +281,10 @@ class GalsimFitModel(FitModel):
 
                 meta["ierr"] = ierr
                 self._create_models_in_kobs(kobs)
+
+                # Set model centroid
+                jacob_shift = self._get_jacob_shift(band, i)
+                meta["jacob_shift"] = jacob_shift
 
     def _check_guess(self, guess):
         """
@@ -280,7 +303,7 @@ class GalsimFitModel(FitModel):
             band_pars = self.get_band_pars(guess, band)
             # just doing this to see if an exception is raised. This
             # will bother flake8
-            gal = self.make_model(band_pars)  # noqa
+            gal = self.make_model(band_pars, np.array([0,0]))  # noqa
 
         return guess
 
@@ -318,6 +341,7 @@ class GalsimFitModel(FitModel):
             self["s2n_r"] = self.calc_s2n_r(self['pars'])
             self._set_g()
             self._set_flux()
+            self._set_T()
 
     def calc_s2n_r(self, pars):
         """
@@ -336,7 +360,7 @@ class GalsimFitModel(FitModel):
 
                 round_pars = band_pars.copy()
                 round_pars[2:2+2] = 0.0
-                gal = self.make_model(round_pars)
+                gal = self.make_model(round_pars, kobs.meta["jacob_shift"])
 
                 kmodel = meta["kmodel"]
 
@@ -359,6 +383,10 @@ class GalsimFitModel(FitModel):
             s2n = 0.0
 
         return s2n
+
+    def _set_T(self):
+        self["T"] = self["pars"][4]
+        self["T_err"] = np.sqrt(self["pars_cov"][4, 4])
 
 
 class GalsimSpergelFitModel(GalsimFitModel):
