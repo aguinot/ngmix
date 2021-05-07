@@ -189,8 +189,8 @@ class GalsimFitModel(FitModel):
         row_cen = (img_size[1]-1)/2.
         col_cen = (img_size[0]-1)/2.
 
-        row_shift = (jacob_cen[0]-row_cen)*pixel_scale
-        col_shift = (jacob_cen[1]-col_cen)*pixel_scale
+        row_shift = (jacob_cen[1]-row_cen)*pixel_scale
+        col_shift = (jacob_cen[0]-col_cen)*pixel_scale
 
         return np.array([row_shift, col_shift])
 
